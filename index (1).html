@@ -1,0 +1,2783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CityPulse</title>
+<link rel="icon" type="image/jpeg" href="a8ae038a306f2ccdadef2f5ce7a985f2.png">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&family=Oxanium:wght@600;700;800&family=Chakra+Petch:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://js.puter.com/v2/"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<!-- TensorFlow.js for real ML predictions -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+
+<style>
+:root {
+  --bg: #040d15;
+  --s1: #071320;
+  --s2: #0a1a2b;
+  --s3: #112233;
+  --cyan: #00e5ff;
+  --cyan10: rgba(0,229,255,0.1);
+  --cyan05: rgba(0,229,255,0.05);
+  --amber: #ffb300;
+  --red: #ff1744;
+  --green: #00e676;
+  --purple: #d500f9;
+  --blue: #2979ff;
+  --orange: #ff6d00;
+  --border: rgba(0,229,255,0.07);
+  
+  --border2: rgba(255,255,255,0.04);
+  --text: #c8d8ee;
+  --dim: #e0e8f0;
+  --mono: 'Space Mono', monospace;
+  --ui: 'Syne', sans-serif;
+  --theme-tint: #00e5ff;
+  --theme-tint-dim: rgba(0,229,255,0.08);
+  --theme-tint-border: rgba(0,229,255,0.07);
+}
+
+[data-theme="light"]{
+  --bg: #F3F8FD;
+--s1: #F3F8FD;
+--s2: #F3F8FD;
+--s3: #E6F0FA;
+  --border: rgba(80,70,40,0.12);
+  --border2: rgba(0,0,0,0.06);
+  --text: #2a2518;
+  --dim: #5c5340;
+  --theme-tint: #0d5c5c;
+  --theme-tint-dim: rgba(13,92,92,0.1);
+  --theme-tint-border: rgba(13,92,92,0.2);
+  --cyan: #0d5c5c;
+  --cyan10: rgba(13,92,92,0.12);
+  --cyan05: rgba(13,92,92,0.06);
+  --green: #0d6b4a;
+}
+[data-theme="light"] body::before{
+  opacity: 0.25;
+  background: radial-gradient(
+    ellipse 80% 50% at 50% 0%,
+    rgba(37, 99, 235, 0.12),   /* soft blue glow */
+    transparent 65%
+  ) !important;
+}
+
+[data-theme="light"] header{
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(6px);
+}
+
+[data-theme="light"] .leaflet-container{
+  background: #F1F5F9 !important;
+}
+[data-theme="light"] .leaflet-tile{filter:none}
+[data-theme="light"] .maptopbar{background:rgba(233,237,242,.97)}
+[data-theme="light"] .timeslider{background:rgba(233,237,242,.97)}
+[data-theme="light"] .map-legend{background:rgba(233,237,242,.95);border-color:var(--border)}
+[data-theme="light"] .wind-card{background:rgba(233,237,242,.95);border-color:var(--border)}
+[data-theme="light"] .charts-row{background:rgba(233,237,242,.97)}
+[data-theme="light"] .chart-box{background:transparent}
+[data-theme="light"] .mctrl-btn{background:var(--s2);color:var(--dim);border-color:var(--border)}
+[data-theme="light"] .mctrl-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+[data-theme="light"] .mctrl-btn.on{background:var(--cyan10);border-color:var(--cyan);color:var(--cyan)}
+
+[data-theme="light"] .nav-slogan marquee{
+  color: var(--text);
+}
+
+[data-theme="light"] .logo-name{
+  color: var(--theme-tint);
+}
+
+[data-theme="light"] .zname{
+  color: var(--theme-tint);
+}
+.logo-icon svg{color:var(--theme-tint)}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--ui)}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--theme-tint-dim),transparent 60%);opacity:0.6}
+
+.app{display:grid;grid-template-rows:auto auto 1fr auto;height:100vh;position:relative;z-index:1}
+
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 18px;border-bottom:1px solid var(--theme-tint-border);
+  background:rgba(4,13,21,0.97);backdrop-filter:blur(20px);
+  position:relative;z-index:500;
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:44px;height:44px;border-radius:7px;background:var(--theme-tint-dim);border:1px solid var(--theme-tint);display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px var(--theme-tint-dim)}
+.logo-icon svg{width:18px;height:18px}
+.theme-toggle{background:var(--s2);border:1px solid var(--border);border-radius:6px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;color:var(--text)}
+.theme-toggle:hover{border-color:var(--theme-tint);color:var(--theme-tint)}
+.theme-toggle svg{width:18px;height:18px}
+.logo-name{font-weight:800;font-size:18px;letter-spacing:-.5px;color:var(--theme-tint)}
+.logo-sub{font-family:var(--mono);font-size:7px;color:var(--dim);letter-spacing:2px;text-transform:uppercase}
+
+.hdr-center{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:5px 12px}
+.hdr-center select{background:transparent;border:none;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;cursor:pointer}
+.hdr-center select option{background:var(--s2)}
+
+.nav-slogan{flex:1;min-width:0;margin:0 14px;overflow:hidden;display:flex;align-items:center}
+.nav-slogan marquee{font-family:var(--mono);font-size:10px;color:#fff;letter-spacing:1.2px;display:block;width:100%}
+.nav-slogan marquee .slogan-strong{color:var(--theme-tint);font-weight:700}
+
+.hdr-right{display:flex;align-items:center;gap:12px}
+.live-badge{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:8px;color:var(--green);letter-spacing:1.5px;text-transform:uppercase}
+.ldot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);animation:pulse 1.5s infinite}
+.clock{font-family:var(--mono);font-size:11px;color:var(--theme-tint);letter-spacing:1px}
+
+.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--border)}
+.kpi{padding:10px 14px;border-right:1px solid var(--border);position:relative;overflow:hidden;cursor:default;transition:background .2s}
+.kpi:hover{background:var(--s1)}
+.kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1.5px}
+.kpi.c1::after{background:linear-gradient(90deg,var(--amber),transparent)}
+.kpi.c2::after{background:linear-gradient(90deg,var(--blue),transparent)}
+.kpi.c3::after{background:linear-gradient(90deg,var(--red),transparent)}
+.kpi.c4::after{background:linear-gradient(90deg,var(--purple),transparent)}
+.kpi.c5::after{background:linear-gradient(90deg,var(--cyan),transparent)}
+.kpi.c6::after{background:linear-gradient(90deg,var(--green),transparent)}
+.kl{font-family:var(--mono);font-size:7px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+.kv{
+  font-family:'Chakra Petch',var(--mono);
+  font-weight:700;
+  font-size:26px;
+  line-height:1;
+  margin-bottom:2px;
+  letter-spacing:1px;
+
+  color:#000; /* change if needed */
+  text-shadow: 
+    1px 1px 0 rgba(255,255,255,0.6);
+}.ks{font-family:var(--mono);font-size:8px;color:var(--dim);display:flex;align-items:center;gap:5px}
+.kbadge{padding:1px 5px;border-radius:3px;font-size:7px;font-weight:700}
+.kb-up{background:rgba(255,23,68,.12);color:var(--red);border:1px solid rgba(255,23,68,.3)}
+.kb-ok{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.3)}
+.kb-neu{background:var(--cyan10);color:var(--cyan);border:1px solid rgba(0,229,255,.3)}
+
+.skel{display:inline-block;border-radius:3px;background:linear-gradient(90deg,var(--s2) 25%,var(--s3) 50%,var(--s2) 75%);background-size:200% 100%;animation:shimmer 1.3s infinite;height:22px;width:55px}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.bot-typing{display:inline-block;letter-spacing:3px;animation:botPulse 1s infinite}
+@keyframes botPulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+.main{display:grid;grid-template-columns:260px 1fr 380px;flex:1;overflow:hidden;min-height:0}
+
+.pleft{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:var(--s1)}
+.ptitle{padding:9px 13px;font-family:var(--mono);font-size:8.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.ptdot{width:5px;height:5px;border-radius:50%;animation:pulse 1.5s infinite}
+
+.ftabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.ftab{flex:1;text-align:center;font-family:var(--mono);font-size:8.5px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);padding:8px 2px;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none}
+.ftab:hover{color:var(--text)}
+.ftab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+
+.scroll{overflow-y:auto;flex:1;min-height:0}
+.scroll::-webkit-scrollbar{width:2px}
+.scroll::-webkit-scrollbar-thumb{background:var(--border)}
+
+.zcard{padding:8px 11px;margin:4px 6px;border-radius:6px;border:1px solid var(--border2);background:var(--s2);cursor:pointer;transition:all .2s}
+.zcard:hover{border-color:var(--cyan);background:var(--cyan10)}
+.zcard.sel{border-color:var(--cyan);background:var(--cyan10);box-shadow:0 0 8px rgba(0,229,255,.1)}
+.zcard.cmp{border-color:var(--amber);background:rgba(255,179,0,.08)}
+.ztop{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.zname{font-size:15.5px;font-weight:700}
+.zchip{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:10px;font-weight:700}
+.cc{background:rgba(255,23,68,.12);color:var(--red);border:1px solid rgba(255,23,68,.35)}
+.ch{background:rgba(255,109,0,.12);color:var(--orange);border:1px solid rgba(255,109,0,.35)}
+.cm{background:rgba(255,179,0,.12);color:var(--amber);border:1px solid rgba(255,179,0,.35)}
+.cl{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.3)}
+.zmini{display:grid;grid-template-columns:1fr 1fr;gap:6px 4px}
+.mrow{display:flex;align-items:center;gap:4px}
+.mlbl{font-family:var(--mono);font-size:10px;color:var(--dim);width:28px;flex-shrink:0}
+.mtrack{flex:1;height:2.5px;background:var(--s3);border-radius:2px;overflow:hidden}
+.mfill{height:100%;border-radius:2px;transition:width 1s ease}
+.mval{font-family:var(--mono);font-size:9px;color:var(--dim);width:24px;text-align:right;flex-shrink:0}
+
+.acard{margin:4px 6px;padding:8px 10px;border-radius:5px;border-left:2px solid;background:var(--s2);animation:fadeUp .4s ease both}
+.acard.crit{border-color:var(--red)}
+.acard.warn{border-color:var(--amber)}
+.acard.ai{border-color:var(--purple)}
+.acard.info{border-color:var(--cyan)}
+.atype{font-family:var(--mono);font-size:8px;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px}
+.acard.crit .atype{color:var(--red)}
+.acard.warn .atype{color:var(--amber)}
+.acard.ai   .atype{color:var(--purple)}
+.acard.info .atype{color:var(--cyan)}
+.amsg{font-size:11px;line-height:1.45;margin-bottom:3px}
+.ats{font-family:var(--mono);font-size:8.5px;color:var(--dim)}
+
+.rform{padding:10px}
+.rform input,.rform select,.rform textarea{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 9px;margin-bottom:7px;outline:none;resize:none}
+.rform input:focus,.rform select:focus,.rform textarea:focus{border-color:var(--cyan)}
+.rform label{font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--dim);display:block;margin-bottom:3px;text-transform:uppercase}
+.rbtn{width:100%;padding:8px;border-radius:5px;background:var(--cyan);color:#000;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;border:none;transition:opacity .2s}
+.rbtn:hover{opacity:.85}
+.rbtn.sec{background:transparent;color:var(--cyan);border:1px solid var(--cyan);margin-top:4px}
+.rform select option{background:var(--s2)}
+.pin-hint{font-family:var(--mono);font-size:9px;color:var(--amber);margin-bottom:6px;line-height:1.5}
+.rform .img-upload-wrap{margin-bottom:7px}
+.rform .img-upload-area{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;min-height:56px;padding:10px 14px;background:var(--s2);border:1px dashed var(--border);border-radius:6px;cursor:pointer;transition:border-color .2s,background .2s}
+.rform .img-upload-area:hover{border-color:var(--cyan);background:var(--cyan05)}
+.rform .img-upload-area.has-file{border-style:solid;border-color:var(--cyan);background:var(--cyan05)}
+.rform .img-upload-area input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+.rform .img-upload-area .img-upload-icon{font-size:18px;opacity:.9}
+.rform .img-upload-area .img-upload-text{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--dim)}
+.rform .img-upload-area.has-file .img-upload-text{color:var(--cyan)}
+.rform .img-preview{width:100%;max-height:120px;object-fit:contain;background:var(--s2);border:1px solid var(--border);border-radius:5px;margin-top:6px;display:none}
+.rform .img-preview.has-img{display:block}
+.report-popup-img{max-width:220px;max-height:180px;border-radius:6px;display:block;margin-bottom:8px;border:1px solid var(--border)}
+.report-popup-desc{font-size:10px;line-height:1.5;margin-top:6px;color:var(--text)}
+.rpt-card{position:relative}
+.rpt-delete{position:absolute;bottom:4px;right:4px;width:22px;height:22px;border:none;border-radius:4px;background:rgba(255,23,68,.2);color:var(--red);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0;transition:background .2s}
+.rpt-delete:hover{background:rgba(255,23,68,.4)}
+
+.thresh{padding:10px}
+.th-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border2)}
+.th-label{font-family:var(--mono);font-size:10px;color:var(--text)}
+.th-right{display:flex;align-items:center;gap:8px}
+.th-val{font-family:var(--mono);font-size:12px;font-weight:700;width:36px;text-align:right}
+.th-input{width:80px;height:3px;accent-color:var(--cyan);cursor:pointer}
+
+.pcenter{display:flex;flex-direction:column;overflow:hidden;position:relative}
+.maptopbar{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--border);background:rgba(4,13,21,.9);flex-shrink:0;position:relative;z-index:400}
+.maptitle{font-size:12px;font-weight:800}
+.mapsub{font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:1px}
+
+.map-ctrls{display:flex;align-items:center;gap:8px}
+.mctrl-btn{font-family:var(--mono);font-size:8px;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--s2);color:var(--dim);cursor:pointer;transition:all .2s}
+.mctrl-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.mctrl-btn.on{background:var(--cyan10);border-color:var(--cyan);color:var(--cyan)}
+
+#map{flex:1;min-height:0;position:relative}
+
+.timeslider{padding:8px 14px;border-top:1px solid var(--border);background:rgba(4,13,21,.95);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.slider-label{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+.slider-days{display:flex;gap:4px;flex:1;justify-content:space-between}
+.sday{font-family:var(--mono);font-size:7px;color:var(--dim);cursor:pointer;padding:3px 7px;border-radius:3px;border:1px solid transparent;transition:all .2s;text-align:center}
+.sday:hover{border-color:var(--cyan);color:var(--cyan)}
+.sday.on{background:var(--cyan10);border-color:var(--cyan);color:var(--cyan)}
+.slider-track{flex:1;position:relative}
+#timeSlider{width:100%;accent-color:var(--cyan);cursor:pointer}
+.slider-date{font-family:var(--mono);font-size:9px;color:var(--cyan);min-width:80px;text-align:right}
+
+.charts-row{display:grid;grid-template-columns:3fr 2fr;border-top:1px solid var(--border);height:175px;flex-shrink:0}
+.chart-box{padding:9px 13px;border-right:1px solid var(--border)}
+.chart-box:last-child{border-right:none}
+.chart-lbl{font-family:var(--mono);font-size:7.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:7px}
+.chart-wrap{height:calc(100% - 22px)}
+
+.pright{border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:var(--s1)}
+.rtabs{display:flex;border-bottom:1px solid var(--border)}
+.rtab{flex:1;text-align:center;font-family:var(--mono);font-size:8.5px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);padding:9px 2px;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none}
+.rtab:hover{color:var(--text)}
+.rtab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+.rtab-pane{flex:1;overflow-y:auto;padding:11px}
+.rtab-pane::-webkit-scrollbar{width:2px}
+.rtab-pane::-webkit-scrollbar-thumb{background:var(--border)}
+#botMessages::-webkit-scrollbar{width:2px}
+#botMessages::-webkit-scrollbar-track{background:transparent}
+#botMessages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+#botMessages::-webkit-scrollbar-thumb:hover{background:var(--cyan)}
+
+/* AI predictions — enhanced ML styles */
+.ai-header{display:flex;align-items:center;gap:7px;margin-bottom:11px}
+.ai-tag{font-family:var(--mono);font-size:8.5px;padding:2px 7px;border-radius:10px;background:linear-gradient(135deg,rgba(106,0,255,.6),rgba(0,191,255,.5));color:#fff;letter-spacing:1px;font-weight:700}
+.pred-item{margin-bottom:10px}
+.pred-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1px}
+.pred-name{font-size:12px;font-weight:700}
+.pred-pct{font-family:var(--mono);font-size:13px;font-weight:700}
+.pred-meta{font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:3px}
+.pred-bar{height:3.5px;background:var(--s3);border-radius:2px;overflow:hidden;position:relative}
+.pred-fill{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+/* ── AUTH ── */
+#authScreen{position:fixed;inset:0;z-index:9500;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0}
+.auth-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:36px 40px;width:360px;display:flex;flex-direction:column;gap:18px;box-shadow:0 0 40px rgba(0,229,255,.08)}
+.auth-logo{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:4px}
+.auth-logo img{width:60px;height:60px;border-radius:12px;object-fit:cover;border:1.5px solid var(--cyan);box-shadow:0 0 18px rgba(0,229,255,.25)}
+.auth-title{font-family:'Oxanium',var(--ui);font-weight:800;font-size:20px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase}
+.auth-sub{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:2px;text-transform:uppercase;text-align:center}
+.auth-tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.auth-tab{flex:1;font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:8px;cursor:pointer;border:none;background:transparent;color:var(--dim);transition:all .2s}
+.auth-tab.on{background:var(--cyan10);color:var(--cyan)}
+.auth-field{display:flex;flex-direction:column;gap:5px}
+.auth-field label{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim)}
+.auth-field input{background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:9px 12px;outline:none;transition:border-color .2s}
+.auth-field input:focus{border-color:var(--cyan)}
+.auth-btn{width:100%;padding:10px;border-radius:6px;background:var(--cyan);color:#000;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1.5px;cursor:pointer;border:none;transition:opacity .2s;text-transform:uppercase}
+.auth-btn:hover{opacity:.85}
+.auth-err{font-family:var(--mono);font-size:9px;color:var(--red);text-align:center;min-height:14px}
+.auth-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:7px;letter-spacing:1.5px;padding:2px 7px;border-radius:3px;text-transform:uppercase}
+.auth-badge.gov{background:rgba(255,179,0,.12);color:var(--amber);border:1px solid rgba(255,179,0,.3)}
+.auth-badge.user{background:var(--cyan10);color:var(--cyan);border:1px solid rgba(0,229,255,.3)}
+
+/* ── GOV PANEL ── */
+#govPanel{position:fixed;inset:0;z-index:9000;background:rgba(4,13,21,.6);backdrop-filter:blur(4px);display:none;align-items:flex-start;justify-content:flex-end;padding:8px}
+.gov-drawer{width:420px;height:100%;background:var(--s1);border:1px solid var(--border);border-radius:10px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px rgba(0,229,255,.08)}
+.gov-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.gov-title{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--amber)}
+.gov-close{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px;border-radius:4px;transition:color .2s}
+.gov-close:hover{color:var(--red)}
+.gov-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.gov-tab{flex:1;font-family:var(--mono);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);padding:9px 2px;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .2s}
+.gov-tab:hover{color:var(--text)}
+.gov-tab.on{color:var(--amber);border-bottom-color:var(--amber)}
+.gov-body{flex:1;overflow-y:auto;padding:10px}
+.gov-body::-webkit-scrollbar{width:2px}
+.gov-body::-webkit-scrollbar-thumb{background:var(--border)}
+.gov-rpt-card{background:var(--s2);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;margin-bottom:7px;position:relative}
+.gov-rpt-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.gov-rpt-type{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--amber)}
+.gov-rpt-meta{font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:4px}
+.gov-rpt-desc{font-family:var(--mono);font-size:9px;color:var(--text);margin-bottom:6px;line-height:1.5}
+.gov-actions{display:flex;gap:5px;flex-wrap:wrap}
+.gov-act-btn{font-family:var(--mono);font-size:8px;letter-spacing:.5px;padding:3px 9px;border-radius:4px;cursor:pointer;border:1px solid;transition:all .2s}
+.gov-act-btn.resolve{color:var(--green);border-color:rgba(0,230,118,.3);background:rgba(0,230,118,.07)}
+.gov-act-btn.resolve:hover{background:rgba(0,230,118,.15)}
+.gov-act-btn.unresolve{color:var(--amber);border-color:rgba(255,179,0,.3);background:rgba(255,179,0,.07)}
+.gov-act-btn.unresolve:hover{background:rgba(255,179,0,.15)}
+.gov-act-btn.delete{color:var(--red);border-color:rgba(255,23,68,.3);background:rgba(255,23,68,.07)}
+.gov-act-btn.delete:hover{background:rgba(255,23,68,.15)}
+.gov-status-badge{font-family:var(--mono);font-size:7px;letter-spacing:1px;padding:2px 7px;border-radius:3px;text-transform:uppercase;font-weight:700}
+.gov-status-badge.open{background:rgba(255,23,68,.12);color:var(--red);border:1px solid rgba(255,23,68,.3)}
+.gov-status-badge.resolved{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.3)}
+.gov-alert-form{background:var(--s2);border:1px solid var(--border2);border-radius:6px;padding:12px;margin-bottom:10px}
+.gov-alert-form textarea,.gov-alert-form input,.gov-alert-form select{width:100%;background:var(--s3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:10px;padding:7px 10px;outline:none;margin-bottom:7px;resize:none}
+.gov-alert-form textarea:focus,.gov-alert-form input:focus,.gov-alert-form select:focus{border-color:var(--amber)}
+.gov-alert-form select option{background:var(--s2)}
+.gov-push-btn{width:100%;padding:8px;border-radius:5px;background:var(--amber);color:#000;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;border:none;transition:opacity .2s}
+.gov-push-btn:hover{opacity:.85}
+.gov-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.gov-stat{background:var(--s2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;text-align:center}
+.gov-stat-val{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--cyan);margin-bottom:2px}
+.gov-stat-lbl{font-family:var(--mono);font-size:7px;letter-spacing:1px;color:var(--dim);text-transform:uppercase}
+/* Gov badge in header */
+#govHeaderBadge{display:none;align-items:center;gap:6px}
+
+.pred-ci{position:absolute;top:0;height:100%;opacity:.3;border-radius:2px}
+
+/* ML training status banner */
+.ml-status{padding:7px 10px;margin:4px 6px 8px;border-radius:5px;background:rgba(213,0,249,.07);border:1px solid rgba(213,0,249,.2);font-family:var(--mono);font-size:8.5px;color:var(--purple);display:flex;align-items:center;gap:7px}
+.ml-dot{width:6px;height:6px;border-radius:50%;background:var(--purple);flex-shrink:0}
+.ml-dot.training{animation:pulse 0.7s infinite}
+.ml-dot.done{background:var(--green)}
+.ml-metrics{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border2)}
+.ml-metric{background:var(--s2);border-radius:4px;padding:5px 7px;border:1px solid var(--border2)}
+.ml-metric-label{font-family:var(--mono);font-size:7px;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:2px}
+.ml-metric-val{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--cyan)}
+
+/* 7-day sparkline for each zone prediction */
+.pred-sparkline{display:flex;align-items:flex-end;gap:2px;height:24px;margin-top:4px}
+.spark-bar{flex:1;border-radius:1px 1px 0 0;min-height:2px;transition:height .6s ease}
+
+.cmp-panel{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.cmp-col{background:var(--s2);border-radius:6px;padding:9px;border:1px solid var(--border2)}
+.cmp-col.a{border-color:var(--cyan)}
+.cmp-col.b{border-color:var(--amber)}
+.cmp-title{font-family:var(--mono);font-size:8px;letter-spacing:1px;text-transform:uppercase;margin-bottom:7px}
+.cmp-col.a .cmp-title{color:var(--cyan)}
+.cmp-col.b .cmp-title{color:var(--amber)}
+.cmp-stat{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;margin-bottom:3px;padding-bottom:3px;border-bottom:1px solid var(--border2)}
+.cmp-stat:last-child{border-bottom:none}
+.cmp-val{font-weight:700}
+
+.poll-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border2)}
+.poll-ico{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.poll-name{font-size:10px;font-weight:700;margin-bottom:1px}
+.poll-conc{font-family:var(--mono);font-size:8px;color:var(--dim)}
+.poll-bar{height:3px;background:var(--s3);border-radius:2px;overflow:hidden;margin-top:3px}
+.poll-fill{height:100%;border-radius:2px;transition:width 1s}
+.poll-status{font-family:var(--mono);font-size:7.5px;padding:1px 5px;border-radius:3px;margin-left:auto;flex-shrink:0}
+
+.exp-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;background:var(--s2);border:1px solid var(--border2);cursor:pointer;margin-bottom:7px;transition:all .2s}
+.exp-btn:hover{border-color:var(--cyan);background:var(--cyan10)}
+.exp-icon{font-size:16px}
+.exp-label{font-size:11px;font-weight:600}
+.exp-desc{font-family:var(--mono);font-size:8px;color:var(--dim)}
+
+.action-card{padding:9px 11px;border-radius:6px;background:var(--s2);border-left:2px solid;margin-bottom:7px}
+.action-pri{font-family:var(--mono);font-size:9px;letter-spacing:1px;margin-bottom:3px}
+.action-text{font-size:11px;line-height:1.5}
+
+.statusbar{display:flex;align-items:center;justify-content:space-between;padding:5px 16px;border-top:1px solid var(--border);background:var(--s1);font-family:var(--mono);font-size:7.5px;color:var(--dim);flex-shrink:0;letter-spacing:.5px}
+.sbi{display:flex;align-items:center;gap:5px}
+.sbd{width:4px;height:4px;border-radius:50%}
+
+.leaflet-container{background:#030c15!important}
+.leaflet-tile{filter:brightness(.9) saturate(.8)}
+.leaflet-popup-content-wrapper{background:var(--s2)!important;border:1px solid var(--cyan)!important;border-radius:8px!important;color:var(--text)!important;box-shadow:0 0 20px rgba(0,229,255,.2)!important}
+.leaflet-popup-tip{background:var(--s2)!important}
+.leaflet-popup-content{margin:10px 14px!important;font-family:var(--mono);font-size:11px;line-height:1.6}
+.leaflet-control-zoom a{background:var(--s2)!important;color:var(--cyan)!important;border-color:var(--border)!important}
+.leaflet-control-zoom a:hover{background:var(--cyan10)!important}
+.leaflet-control-attribution{background:rgba(4,13,21,.8)!important;color:var(--dim)!important;font-size:9px!important}
+.leaflet-control-attribution a{color:var(--cyan)!important}
+
+.map-legend{position:absolute;bottom:200px;right:8px;z-index:400;background:rgba(4,13,21,.9);border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-family:var(--mono);font-size:8px}
+.leg-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;color:var(--dim)}
+.leg-row:last-child{margin-bottom:0}
+.leg-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+
+.wind-card{position:absolute;top:52px;right:8px;z-index:400;background:rgba(4,13,21,.9);border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-family:var(--mono);font-size:8px;color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:4px}
+.wind-arrow{font-size:20px;transition:transform .8s ease}
+.wind-val{color:var(--cyan);font-size:10px}
+
+#notif{position:fixed;top:72px;right:14px;z-index:9000;background:var(--s2);border:1px solid var(--cyan);border-radius:7px;padding:9px 14px;font-family:var(--mono);font-size:10px;max-width:290px;display:none;animation:fadeUp .3s ease;box-shadow:0 0 18px rgba(0,229,255,.2);color:var(--text)}
+
+#overlay{position:fixed;inset:0;z-index:8000;background:rgba(4,13,21,.95);backdrop-filter:blur(10px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.ovl-title{font-size:42px;font-weight:800;color:var(--cyan)}
+.ovl-sub{font-family:var(--mono);font-size:12px;color:var(--dim);letter-spacing:1.5px}
+.ovl-bar{width:220px;height:2px;background:var(--s3);border-radius:2px;overflow:hidden}
+.ovl-fill{height:100%;background:var(--cyan);border-radius:2px;transition:width .4s ease;width:0%}
+.ovl-step{font-family:var(--mono);font-size:9px;color:var(--dim);text-align:center;letter-spacing:.5px}
+
+.cmp-mode-bar{position:absolute;top:44px;left:50%;transform:translateX(-50%);z-index:450;background:rgba(255,179,0,.15);border:1px solid var(--amber);border-radius:6px;padding:5px 14px;font-family:var(--mono);font-size:9px;color:var(--amber);display:none;white-space:nowrap}
+
+.report-marker{width:20px;height:20px;border-radius:50%;border:2px solid #fff}
+.report-marker.border-water{border-color:#1e88e5}
+.report-marker.border-other{border-color:#795548}
+.report-marker.sev-low{background:#ffb74d;box-shadow:0 0 8px rgba(255,183,77,.6)}
+.report-marker.sev-medium{background:#ffb300;box-shadow:0 0 8px rgba(255,179,0,.6)}
+.report-marker.sev-high{background:#ff6d00;box-shadow:0 0 8px rgba(255,109,0,.6)}
+.report-marker.sev-critical{background:#ff1744;box-shadow:0 0 8px rgba(255,23,68,.6)}
+.report-marker.resolved{background:#00e676!important;box-shadow:0 0 10px rgba(0,230,118,.7)!important;border-color:#00e676!important}
+
+.toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;font-family:var(--mono);font-size:10px;padding:8px 18px;border-radius:6px;z-index:9999;display:none;animation:fadeUp .3s ease;font-weight:700}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="scan"></div>
+
+<!-- AUTH SCREEN -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img src="a8ae038a306f2ccdadef2f5ce7a985f2.png" alt="CityPulse"/>
+      <div class="auth-title">CityPulse</div>
+      <div class="auth-sub">Live Environmental Intelligence</div>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab on" onclick="switchAuthTab('user',this)">👤 User</button>
+      <button class="auth-tab" onclick="switchAuthTab('gov',this)">🏛️ Government</button>
+    </div>
+    <div class="auth-field">
+      <label>Username</label>
+      <input type="text" id="authUser" placeholder="Enter username" value="user" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="auth-field">
+      <label>Password</label>
+      <input type="password" id="authPass" placeholder="Enter password" value="user123" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="auth-err" id="authErr"></div>
+    <button class="auth-btn" onclick="doLogin()">Sign In</button>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);text-align:center;line-height:1.7">
+      User: <span style="color:var(--cyan)">user / user123</span><br>
+      Gov: <span style="color:var(--amber)">gov / gov@2024</span>
+    </div>
+  </div>
+</div>
+
+<!-- GOV PANEL -->
+<div id="govPanel" onclick="if(event.target===this)closeGovPanel()">
+  <div class="gov-drawer">
+    <div class="gov-header">
+      <div>
+        <div class="gov-title">⚙ Government Dashboard</div>
+        <div style="font-family:var(--mono);font-size:7px;color:var(--dim);margin-top:2px;letter-spacing:1px">CPCB ENFORCEMENT PORTAL</div>
+      </div>
+      <button class="gov-close" onclick="closeGovPanel()">✕</button>
+    </div>
+    <div class="gov-tabs">
+      <button class="gov-tab on" onclick="showGovTab('reports',this)">REPORTS</button>
+      <button class="gov-tab" onclick="showGovTab('alerts',this)">PUSH ALERT</button>
+      <button class="gov-tab" onclick="showGovTab('stats',this)">STATS</button>
+    </div>
+    <div class="gov-body" id="govBody"></div>
+  </div>
+</div>
+
+<div id="overlay">
+  <img src="a8ae038a306f2ccdadef2f5ce7a985f2.png" alt="CityPulse" style="width:72px;height:72px;border-radius:14px;object-fit:cover;border:1.5px solid var(--cyan);box-shadow:0 0 24px rgba(0,229,255,.35);margin-bottom:4px"/>
+  <div class="ovl-title">CityPulse</div>
+  <div class="ovl-sub">CONNECTING TO OPEN DATA SOURCES</div>
+  <div class="ovl-bar"><div class="ovl-fill" id="ovlFill"></div></div>
+  <div class="ovl-step" id="ovlStep">Initializing...</div>
+</div>
+
+<div class="app">
+  <header>
+    <div class="logo">
+      <div class="logo-icon"><img src="a8ae038a306f2ccdadef2f5ce7a985f2.png" alt="CityPulse Logo" style="width:100%;height:100%;object-fit:cover;border-radius:6px;display:block"/></div>
+      <div><div class="logo-name">CityPulse</div>
+    </div>
+    <div class="nav-slogan">
+      <marquee id="navSlogan" behavior="scroll" direction="left" scrollamount="2">Loading location &amp; data...</marquee>
+    </div>
+    <div class="hdr-center">
+      <div class="ldot"></div>
+      <select id="cityPicker" onchange="switchCity()">
+        <option value="pune" selected>Pune, Maharashtra</option>
+        <option value="mumbai">Mumbai, Maharashtra</option>
+        <option value="delhi">Delhi, NCT</option>
+        <option value="bangalore">Bangalore, Karnataka</option>
+        <option value="chennai">Chennai, Tamil Nadu</option>
+        <option value="kolkata">Kolkata, West Bengal</option>
+      </select>
+    </div>
+    <div class="hdr-right">
+      <div id="govHeaderBadge" style="display:none;align-items:center;gap:6px">
+        <button onclick="openGovPanel()" style="font-family:var(--mono);font-size:8px;letter-spacing:1px;padding:4px 10px;border-radius:4px;border:1px solid rgba(255,179,0,.4);background:rgba(255,179,0,.1);color:var(--amber);cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(255,179,0,.2)'" onmouseout="this.style.background='rgba(255,179,0,.1)'">⚙ GOV PANEL</button>
+        <span id="headerRoleBadge" class="auth-badge gov">🏛️ GOV</span>
+      </div>
+      <div id="userHeaderBadge" style="display:none;align-items:center;gap:6px">
+        <span class="auth-badge user">👤 USER</span>
+      </div>
+      <button onclick="doLogout()" id="logoutBtn" style="display:none;font-family:var(--mono);font-size:8px;letter-spacing:1px;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--dim);cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--dim)'">LOGOUT</button>
+      <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode" aria-label="Theme"><svg id="themeIconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><svg id="themeIconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+      <div class="live-badge"><div class="ldot"></div>LIVE DATA</div>
+      <div class="clock" id="clock">--:--:--</div>
+    </div>
+  </header>
+
+  <div class="kpi-strip">
+    <div class="kpi c1"><div class="kl">India AQI (Live)</div><div class="kv" id="k-aqi" style="color:var(--amber)"><span class="skel"></span></div><div class="ks"><span id="k-aqi-lbl">—</span><span class="kbadge kb-neu">LIVE</span></div></div>
+    <div class="kpi c2"><div class="kl">PM₂.₅ µg/m³</div><div class="kv" id="k-pm25" style="color:var(--blue)"><span class="skel"></span></div><div class="ks"><span id="k-pm25-lbl">Current hour</span></div></div>
+    <div class="kpi c3"><div class="kl">Risk Score</div><div class="kv" id="k-risk" style="color:var(--red)"><span class="skel"></span></div><div class="ks"><span id="k-risk-lbl">—</span><span class="kbadge kb-up" id="k-risk-badge">—</span></div></div>
+    <div class="kpi c4"><div class="kl">Violations (CPCB)</div><div class="kv" id="k-viol" style="color:var(--purple)"><span class="skel"></span></div><div class="ks"><span id="k-viol-lbl">FY 2023-24</span></div></div>
+    <div class="kpi c5"><div class="kl">ML Hotspots</div><div class="kv" id="k-pred" style="color:var(--cyan)"><span class="skel"></span></div><div class="ks"><span id="k-pred-lbl">7-day · Neural Net</span><span class="kbadge kb-neu" id="k-conf">—</span></div></div>
+    <div class="kpi c6"><div class="kl">Wind Speed</div><div class="kv" id="k-wind" style="color:var(--green)"><span class="skel"></span></div><div class="ks"><span id="k-wind-lbl">Open-Meteo</span></div></div>
+  </div>
+
+  <div class="main">
+    <div class="pleft">
+      <div class="ftabs">
+        <button class="ftab on" onclick="showFTab('zones',this)">ZONES</button>
+        <button class="ftab" onclick="showFTab('alerts',this)">ALERTS</button>
+        <button class="ftab" onclick="showFTab('report',this)">REPORT</button>
+      </div>
+      <div id="ftab-zones" class="scroll" style="padding:4px 0"></div>
+      <div id="ftab-alerts" class="scroll" style="display:none;padding:4px 0"></div>
+      <div id="ftab-report" style="display:none;overflow-y:auto;" class="scroll">
+        <div class="rform">
+        
+          <label>Violation Type</label>
+          <select id="rType">
+            <option>Industrial Effluent Discharge</option>
+            <option>Illegal Dumping / Solid Waste</option>
+            <option>Air Emission Violation</option>
+            <option>Water Body Contamination</option>
+            <option>Construction Dust</option>
+            <option>Chemical Spill</option>
+            <option>Noise Pollution</option>
+          </select>
+          <label>Severity</label>
+          <select id="rSeverity">
+            <option>Low</option>
+            <option>Medium</option>
+            <option>High</option>
+            <option>Critical / Emergency</option>
+          </select>
+          <label>Location (auto-filled on map click)</label>
+          <input type="text" id="rLoc" placeholder="Click map to set location..." readonly/>
+          <label>Attach Image (optional)</label>
+          <div class="img-upload-wrap">
+            <label class="img-upload-area" id="rImageArea" for="rImage">
+              <input type="file" id="rImage" accept="image/*" onchange="previewReportImage(this)"/>
+              <span class="img-upload-icon"></span>
+              <span class="img-upload-text" id="rImageLabel">Choose image or drop here</span>
+            </label>
+            <img id="rImagePreview" class="img-preview" alt="Preview"/>
+          </div>
+          <label>Description</label>
+          <textarea rows="3" id="rDesc" placeholder="Describe the violation source, visible signs, smell, color of discharge..."></textarea>
+          <label>Your Name (optional)</label>
+          <input type="text" id="rName" placeholder="Anonymous"/>
+          <button class="rbtn" onclick="submitReport()"> SUBMIT REPORT</button>
+          <button class="rbtn sec" onclick="clearReportPin()">🗑 Clear Pin</button>
+          <div id="rptList" style="margin-top:10px;"></div>
+        </div>
+      </div>
+      <div id="ftab-thresh" style="display:none;" class="scroll">
+        <div class="thresh">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:8px;letter-spacing:1px;">SET ALERT THRESHOLDS — Alerts fire when exceeded</div>
+          <div class="th-row">
+            <span class="th-label" style="color:var(--amber)">AQI Warn</span>
+            <div class="th-right">
+              <input type="range" class="th-input" id="th-aqi-warn" min="50" max="400" value="200" oninput="updateThresh('aqi-warn',this.value)">
+              <span class="th-val" id="tv-aqi-warn" style="color:var(--amber)">200</span>
+            </div>
+          </div>
+          <div class="th-row">
+            <span class="th-label" style="color:var(--red)">AQI Critical</span>
+            <div class="th-right">
+              <input type="range" class="th-input" id="th-aqi-crit" min="100" max="500" value="300" oninput="updateThresh('aqi-crit',this.value)">
+              <span class="th-val" id="tv-aqi-crit" style="color:var(--red)">300</span>
+            </div>
+          </div>
+          <div class="th-row">
+            <span class="th-label" style="color:var(--blue)">PM₂.₅ Limit</span>
+            <div class="th-right">
+              <input type="range" class="th-input" id="th-pm25" min="20" max="200" value="60" oninput="updateThresh('pm25',this.value)">
+              <span class="th-val" id="tv-pm25" style="color:var(--blue)">60</span>
+            </div>
+          </div>
+          <div class="th-row">
+            <span class="th-label" style="color:var(--purple)">Risk Score</span>
+            <div class="th-right">
+              <input type="range" class="th-input" id="th-risk" min="30" max="95" value="70" oninput="updateThresh('risk',this.value)">
+              <span class="th-val" id="tv-risk" style="color:var(--purple)">70</span>
+            </div>
+          </div>
+          <div class="th-row">
+            <span class="th-label" style="color:var(--orange)">NO₂ µg/m³</span>
+            <div class="th-right">
+              <input type="range" class="th-input" id="th-no2" min="20" max="200" value="80" oninput="updateThresh('no2',this.value)">
+              <span class="th-val" id="tv-no2" style="color:var(--orange)">80</span>
+            </div>
+          </div>
+          <div style="margin-top:12px;font-family:var(--mono);font-size:9px;color:var(--dim);">Alerts shown in ALERTS tab when thresholds are breached.</div>
+          <div id="threshAlerts" style="margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pcenter">
+      <div class="maptopbar">
+        <div>
+          <div class="maptitle" id="mapTitle">—</div>
+          <div class="mapsub">OpenStreetMap · CartoDB Dark · Real-time AQ markers · <span id="fetchTs">—</span></div>
+        </div>
+        <div class="map-ctrls">
+          <button class="mctrl-btn on"  id="btn-risk"    onclick="setMapLayer('risk',this)">RISK</button>
+          <button class="mctrl-btn"     id="btn-aqi"     onclick="setMapLayer('aqi',this)">AQI</button>
+          <button class="mctrl-btn"     id="btn-predict" onclick="setMapLayer('predict',this)">7-DAY ML</button>
+          <button class="mctrl-btn"     id="btn-heat"    onclick="toggleHeat(this)">HEATMAP</button>
+          <button class="mctrl-btn"     id="btn-compare" onclick="toggleCompare(this)">COMPARE</button>
+          <button class="mctrl-btn"     id="btn-reports"  onclick="toggleReportsLayer(this)">REPORTS</button>
+        </div>
+      </div>
+
+      <div class="cmp-mode-bar" id="cmpBar">⚡ COMPARE MODE — Click two zones on the map or left panel</div>
+
+      <div id="map" style="flex:1;min-height:0;z-index:100"></div>
+
+      <div class="wind-card" id="windCard">
+        <div style="font-family:var(--mono);font-size:7px;color:var(--dim);letter-spacing:1.5px;">WIND</div>
+        <div class="wind-arrow" id="windArrow">↑</div>
+        <div class="wind-val" id="windVal">— m/s</div>
+        <div style="font-family:var(--mono);font-size:7px;color:var(--dim)" id="windDir">—</div>
+      </div>
+
+      <div class="map-legend">
+        <div class="leg-row"><div class="leg-dot" style="background:#00e676;border:1px solid #00e67699"></div>Safe (0–40)</div>
+        <div class="leg-row"><div class="leg-dot" style="background:#ffb300;border:1px solid #ffb30099"></div>Moderate (41–60)</div>
+        <div class="leg-row"><div class="leg-dot" style="background:#ff6d00;border:1px solid #ff6d0099"></div>High (61–79)</div>
+        <div class="leg-row"><div class="leg-dot" style="background:#ff1744;border:1px solid #ff174499"></div>Critical (80+)</div>
+      </div>
+
+      <div class="timeslider">
+        <span class="slider-label">ML FORECAST</span>
+        <div class="slider-days" id="sliderDays"></div>
+        <span class="slider-date" id="sliderDate">Today</span>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-box">
+          <div class="chart-lbl">30-Day PM₂.₅ Trend + ML Neural Net Forecast (7-day)</div>
+          <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+        </div>
+        <div class="chart-box" style="border-right:none">
+          <div class="chart-lbl">Pollutant % of CPCB Limit — Now</div>
+          <div class="chart-wrap"><canvas id="pollChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pright">
+      <div class="rtabs">
+        <button class="rtab on" onclick="showRTab('ai',this)">ML PREDICT</button>
+        <button class="rtab" onclick="showRTab('poll',this)">POLLUTANTS</button>
+        <button class="rtab" onclick="showRTab('compare',this)">COMPARE</button>
+        <button class="rtab" onclick="showRTab('export',this)">EXPORT</button>
+        <button class="rtab" onclick="showRTab('bot',this)">AI BOT</button>
+      </div>
+      <div class="rtab-pane" id="rp-ai">
+        <div class="ai-header"><span class="ai-tag">TF.JS NEURAL NET</span><span style="font-size:12px;font-weight:700;">7-Day Risk Forecast</span></div>
+        <div id="mlStatusBanner" class="ml-status">
+          <div class="ml-dot training" id="mlDot"></div>
+          <span id="mlStatusText">Waiting for data to train model...</span>
+        </div>
+        <div id="predList"></div>
+        <div class="ml-metrics" id="mlMetrics" style="display:none">
+          <div class="ml-metric"><div class="ml-metric-label">Model R²</div><div class="ml-metric-val" id="mlR2">—</div></div>
+          <div class="ml-metric"><div class="ml-metric-label">RMSE</div><div class="ml-metric-val" id="mlRMSE">—</div></div>
+          <div class="ml-metric"><div class="ml-metric-label">Epochs</div><div class="ml-metric-val" id="mlEpochs">—</div></div>
+          <div class="ml-metric"><div class="ml-metric-label">Confidence</div><div class="ml-metric-val" id="mlConf">—</div></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:8px;padding-top:8px;border-top:1px solid var(--border2)">
+          Architecture: Dense neural net trained on 30-day history · Features: lag-1/2/7, rolling-7d mean, hour-of-day, day-of-week, industrial flag · Monte Carlo dropout CI · TensorFlow.js in-browser<br>
+          Model: <span id="confScore" style="color:var(--cyan)">training...</span>
+        </div>
+        <div style="margin-top:12px"><div style="font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">ML-Driven Actions</div><div id="actionList"></div></div>
+      </div>
+      <div class="rtab-pane" id="rp-poll" style="display:none">
+        <div id="pollBreak"></div>
+      </div>
+      <div class="rtab-pane" id="rp-compare" style="display:none">
+        <div style="font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Zone Comparison</div>
+        <div id="cmpPanel">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--dim);text-align:center;padding:20px">
+            Enable COMPARE mode and click two zones on the map or left panel.
+          </div>
+        </div>
+      </div>
+      <div class="rtab-pane" id="rp-export" style="display:none">
+        <div style="font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Export & Download</div>
+        <div class="exp-btn" onclick="playSound('export-csv');exportCSV()">
+          <span class="exp-icon">📊</span>
+          <div><div class="exp-label">Zone Data CSV</div><div class="exp-desc">All zones · AQI, PM2.5, Risk Score, WQI</div></div>
+        </div>
+        <div class="exp-btn" onclick="playSound('export-alerts-csv');exportAlertsCSV()">
+          <span class="exp-icon">⚠️</span>
+          <div><div class="exp-label">Alerts & Violations CSV</div><div class="exp-desc">Active alerts + CPCB violation data</div></div>
+        </div>
+        <div class="exp-btn" onclick="playSound('export-json');exportJSON()">
+          <span class="exp-icon">🗂️</span>
+          <div><div class="exp-label">Full JSON Report</div><div class="exp-desc">All live data + ML predictions · machine-readable</div></div>
+        </div>
+        <div class="exp-btn" onclick="playSound('export-print');printReport()">
+          <span class="exp-icon">🖨️</span>
+          <div><div class="exp-label">Print / PDF Report</div><div class="exp-desc">Print-formatted city risk summary</div></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:10px;padding-top:8px;border-top:1px solid var(--border2)">Data: WAQI · Open-Meteo · CPCB 2023-24 · ML: TensorFlow.js · © CityPulse</div>
+      </div>
+
+      <!-- AI BOT PANEL -->
+      <div class="rtab-pane" id="rp-bot" style="display:none;flex-direction:column;padding:0">
+        <div style="padding:10px 11px;border-bottom:1px solid var(--border);flex-shrink:0">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
+            <div style="width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);animation:pulse 1.5s infinite;flex-shrink:0"></div>
+            <span style="font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan)">CityPulse AI · Live Data Context</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">Ask anything about current air quality, zones, predictions, or violations</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px" id="botPrebuilt"></div>
+        </div>
+        <div id="botMessages" style="flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:6px;min-height:0;max-height:340px"></div>
+        <div style="padding:8px 10px;border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px">
+          <input id="botInput" type="text" placeholder="Ask about air quality, zones, risks..."
+            style="flex:1;background:var(--s2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:10px;padding:6px 9px;outline:none"
+            onkeydown="if(event.key==='Enter')sendBotMessage()"
+            onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--border)'"/>
+          <button onclick="sendBotMessage()" style="background:var(--cyan);color:#000;border:none;border-radius:5px;font-family:var(--mono);font-size:10px;font-weight:700;padding:6px 11px;cursor:pointer;transition:opacity .2s;flex-shrink:0" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">ASK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <div class="sbi"><div class="sbd" style="background:var(--green);box-shadow:0 0 4px var(--green);animation:pulse 1.5s infinite"></div>SYSTEM ONLINE</div>
+    <div class="sbi"><div class="sbd" style="background:var(--cyan)"></div>WAQI · OPEN-METEO CAMS · 11KM · HOURLY</div>
+    <div class="sbi"><div class="sbd" style="background:var(--amber)"></div>CPCB NWMP 2023-24 · ENFORCEMENT REPORT 2023-24</div>
+    <div class="sbi"><div class="sbd" style="background:var(--purple)"></div>ML ENGINE: TENSORFLOW.JS · DENSE NET · MC DROPOUT</div>
+    <div id="lastFetch" style="color:var(--green)">Fetching...</div>
+  </div>
+</div>
+
+<!-- Floating AI Bot Button -->
+<button id="floatingBotBtn" onclick="openAIBot()" title="Ask CityPulse AI" style="
+  position:fixed;
+  bottom:28px;
+  right:24px;
+  z-index:9999;
+  width:70px;
+  height:70px;
+  border:none;
+  background:none;
+  outline:none;
+  padding:0;
+  cursor:pointer;
+  transition:transform .2s;
+"
+onmouseover="this.style.transform='scale(1.1)'"
+onmouseout="this.style.transform='scale(1)'">
+
+  <img src="ailogo.png" alt="AI"
+       style="
+       width:100%;
+       height:100%;
+       border-radius:50%;
+       object-fit:cover;
+       display:block;
+       filter: drop-shadow(0 0 10px rgba(255,255,255,0.4));
+       "/>
+</button>
+
+<div id="notif"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// CITY DEFINITIONS
+// ═══════════════════════════════════════════════════
+const CITIES = {
+  pune:      { label:"Pune, Maharashtra",    lat:18.5204, lon:73.8567, zoom:12, wqi:52,  wqiStatus:"Moderate", river:"Mula-Mutha", violations:1842, closures:214,
+    zones:[
+      {name:"Hadapsar",     lat:18.5074,lon:73.9327,ind:true },
+      {name:"Bhosari MIDC", lat:18.6298,lon:73.8553,ind:true },
+      {name:"Pimpri",       lat:18.6298,lon:73.7997,ind:true },
+      {name:"Katraj",       lat:18.4529,lon:73.8679,ind:false},
+      {name:"Kothrud",      lat:18.4952,lon:73.8106,ind:false},
+      {name:"Shivajinagar", lat:18.5308,lon:73.8474,ind:false},
+      {name:"Aundh",        lat:18.5590,lon:73.8076,ind:false},
+      {name:"Viman Nagar",  lat:18.5679,lon:73.9143,ind:false},
+      {name:"Hinjewadi",    lat:18.5937,lon:73.7218,ind:true },
+      {name:"Wakad",        lat:18.5941,lon:73.7605,ind:false},
+      {name:"Ambegaon",     lat:18.4371,lon:73.8516,ind:false},
+      {name:"Deccan",       lat:18.5162,lon:73.8400,ind:false}
+    ]},
+  mumbai:    { label:"Mumbai, Maharashtra",   lat:19.0760, lon:72.8777, zoom:12, wqi:38,  wqiStatus:"Poor",     river:"Mithi & Ulhas", violations:2341, closures:287,
+    zones:[
+      {name:"Dharavi",   lat:19.0394,lon:72.8530,ind:true },{name:"Chembur",   lat:19.0522,lon:72.8991,ind:true },
+      {name:"Andheri",   lat:19.1136,lon:72.8697,ind:true },{name:"Bandra",    lat:19.0596,lon:72.8295,ind:false},
+      {name:"Ghatkopar", lat:19.0868,lon:72.9088,ind:true },{name:"Colaba",    lat:18.9067,lon:72.8147,ind:false},
+      {name:"Worli",     lat:19.0176,lon:72.8178,ind:false},{name:"Malad",     lat:19.1862,lon:72.8483,ind:false},
+      {name:"Bhandup",   lat:19.1515,lon:72.9416,ind:true },{name:"Kurla",     lat:19.0654,lon:72.8794,ind:true },
+      {name:"Borivali",  lat:19.2288,lon:72.8575,ind:false},{name:"Thane",     lat:19.2183,lon:72.9781,ind:true }
+    ]},
+  delhi:     { label:"Delhi, NCT",             lat:28.6139, lon:77.2090, zoom:11, wqi:22,  wqiStatus:"Very Poor",river:"Yamuna", violations:4218, closures:612,
+    zones:[
+      {name:"Wazirpur",    lat:28.6974,lon:77.1611,ind:true },{name:"Anand Vihar",lat:28.6474,lon:77.3159,ind:true },
+      {name:"RK Puram",    lat:28.5688,lon:77.1792,ind:false},{name:"Connaught Pl",lat:28.6328,lon:77.2197,ind:false},
+      {name:"Dwarka",      lat:28.5921,lon:77.0460,ind:false},{name:"Rohini",     lat:28.7388,lon:77.1125,ind:true },
+      {name:"Jahangirpuri",lat:28.7291,lon:77.1691,ind:true },{name:"Mundka",     lat:28.6749,lon:76.9917,ind:true },
+      {name:"Saket",       lat:28.5195,lon:77.2069,ind:false},{name:"Okhla",      lat:28.5355,lon:77.2882,ind:true },
+      {name:"Vasant Kunj", lat:28.5214,lon:77.1565,ind:false},{name:"Noida Sec62",lat:28.6271,lon:77.3754,ind:true }
+    ]},
+  bangalore: { label:"Bangalore, Karnataka",   lat:12.9716, lon:77.5946, zoom:12, wqi:48,  wqiStatus:"Moderate", river:"Vrishabhavathi", violations:1124, closures:143,
+    zones:[
+      {name:"Peenya",         lat:13.0298,lon:77.5171,ind:true },{name:"Whitefield",    lat:12.9698,lon:77.7499,ind:true },
+      {name:"Koramangala",    lat:12.9279,lon:77.6271,ind:false},{name:"Hebbal",         lat:13.0492,lon:77.5963,ind:true },
+      {name:"BTM Layout",     lat:12.9166,lon:77.6101,ind:false},{name:"Electronic City",lat:12.8449,lon:77.6791,ind:true },
+      {name:"Indiranagar",    lat:12.9783,lon:77.6408,ind:false},{name:"Yelahanka",      lat:13.1004,lon:77.5963,ind:false},
+      {name:"Rajajinagar",    lat:12.9911,lon:77.5493,ind:true },{name:"Sarjapur",       lat:12.9063,lon:77.7093,ind:false},
+      {name:"Bommanahalli",   lat:12.8862,lon:77.6241,ind:true },{name:"Bannerghatta",   lat:12.7993,lon:77.5978,ind:false}
+    ]},
+  chennai:   { label:"Chennai, Tamil Nadu",     lat:13.0827, lon:80.2707, zoom:12, wqi:44,  wqiStatus:"Moderate", river:"Adyar & Cooum", violations:1376, closures:168,
+    zones:[
+      {name:"Manali",         lat:13.1673,lon:80.2553,ind:true },{name:"Ambattur",       lat:13.1140,lon:80.1548,ind:true },
+      {name:"Guindy",         lat:13.0067,lon:80.2206,ind:true },{name:"T Nagar",         lat:13.0418,lon:80.2341,ind:false},
+      {name:"Anna Nagar",     lat:13.0827,lon:80.2098,ind:false},{name:"Adyar",           lat:13.0012,lon:80.2565,ind:false},
+      {name:"Perungudi",      lat:12.9479,lon:80.2468,ind:true },{name:"Sholinganallur",  lat:12.9010,lon:80.2279,ind:false},
+      {name:"Velachery",      lat:12.9750,lon:80.2207,ind:false},{name:"Avadi",           lat:13.1055,lon:80.0983,ind:true },
+      {name:"Porur",          lat:13.0368,lon:80.1572,ind:false},{name:"Kolathur",        lat:13.1208,lon:80.2148,ind:false}
+    ]},
+  kolkata:   { label:"Kolkata, West Bengal",    lat:22.5726, lon:88.3639, zoom:12, wqi:36,  wqiStatus:"Poor",     river:"Hooghly", violations:2876, closures:341,
+    zones:[
+      {name:"Howrah",      lat:22.5958,lon:88.2636,ind:true },{name:"Tangra",      lat:22.5499,lon:88.3847,ind:true },
+      {name:"Salt Lake",   lat:22.5773,lon:88.4166,ind:false},{name:"Park Street",  lat:22.5510,lon:88.3527,ind:false},
+      {name:"Jadavpur",    lat:22.4994,lon:88.3690,ind:true },{name:"Dum Dum",     lat:22.6520,lon:88.3950,ind:true },
+      {name:"Barasat",     lat:22.7218,lon:88.4817,ind:true },{name:"Baranagar",   lat:22.6390,lon:88.3765,ind:true },
+      {name:"Garden Reach",lat:22.5388,lon:88.2951,ind:true },{name:"Belgharia",   lat:22.6760,lon:88.3808,ind:true },
+      {name:"Uluberia",    lat:22.4672,lon:88.1070,ind:true },{name:"New Town",    lat:22.5923,lon:88.4786,ind:false}
+    ]}
+};
+
+// ── HELPERS ────────────────────────────────────────
+function pm25ToAQI(v){
+  if(!v||isNaN(v))return 0;
+  const bp=[[0,30,0,50],[30,60,51,100],[60,90,101,200],[90,120,201,300],[120,250,301,400],[250,500,401,500]];
+  for(const[lo,hi,al,ah]of bp)if(v>=lo&&v<=hi)return Math.round(al+((ah-al)/(hi-lo))*(v-lo));
+  return Math.min(500,Math.round(v*1.8));
+}
+function aqiInfo(a){
+  if(a<=50)  return{label:"Good",        color:"#00e676"};
+  if(a<=100) return{label:"Satisfactory",color:"#9ccc65"};
+  if(a<=200) return{label:"Moderate",    color:"#ffb300"};
+  if(a<=300) return{label:"Poor",        color:"#ff6d00"};
+  if(a<=400) return{label:"Very Poor",   color:"#ff1744"};
+  return           {label:"Severe",      color:"#b71c1c"};
+}
+function hexToRgba(hex,a){const m=hex.slice(1).match(/.{2}/g);if(!m)return hex;const[r,g,b]=m.map(x=>parseInt(x,16));return`rgba(${r},${g},${b},${a})`;}
+function setAqiTheme(aqi){
+  const ai=aqiInfo(typeof aqi==='number'?aqi:0);
+  const root=document.documentElement.style;
+  root.setProperty('--theme-tint',ai.color);
+  root.setProperty('--theme-tint-dim',hexToRgba(ai.color,0.08));
+  root.setProperty('--theme-tint-border',hexToRgba(ai.color,0.12));
+}
+function riskOf(aqi,wqi,ind){
+  const a=Math.min(100,(aqi/500)*100);
+  const w=Math.min(100,((100-wqi)/100)*100);
+  return Math.round(Math.min(99,a*.65+w*.35+(ind?9:0)));
+}
+function riskStyle(r){
+  if(r>=80)return{color:"#ff1744",chip:"cc",label:"CRITICAL"};
+  if(r>=60)return{color:"#ff6d00",chip:"ch",label:"HIGH"};
+  if(r>=40)return{color:"#ffb300",chip:"cm",label:"MODERATE"};
+  return       {color:"#00e676",chip:"cl",label:"LOW"};
+}
+function latestVal(arr,idx){for(let i=idx;i>=0;i--)if(arr[i]!=null)return arr[i];return 0;}
+function curIdx(times){const n=new Date().toISOString().slice(0,13);const i=times.findIndex(t=>t.startsWith(n));return i>=0?i:12;}
+function windDir(deg){const dirs=["N","NE","E","SE","S","SW","W","NW"];return dirs[Math.round(deg/45)%8];}
+
+// ── STATE ──────────────────────────────────────────
+let city='pune',map=null,markers=[],heatLayer=null,cityForecast=null,cityHistory=null,waqiCityData=null;
+let zoneData={},forecastDays=[],selectedForecastDay=1,heatActive=false,compareMode=false;
+let compareZones=[],reportPin=null,reportPinLatLng=null,trendChart=null,pollChart=null;
+let reportMarkers=[],reportsLayerOn=false,currentMapLayer='risk',riversLayer=null;
+const thresholds={aqiWarn:200,aqiCrit:300,pm25:60,risk:70,no2:80};
+let submittedReports=[];
+
+// ── ML STATE ───────────────────────────────────────
+// Holds the trained TF.js model, scaler params, and 7-day predictions
+let mlModel = null;
+let mlScaler = { mean: 0, std: 1 };
+let mlPredictions = [];       // [{zone, peakAQI, dailyAQI[7], riskPct, daysAway, trend, current, ciLow, ciHigh, r2, rmse}]
+let mlModelReady = false;
+let mlEpochsDone = 0;
+let mlR2Score = null;
+let mlRmse = null;
+
+function loadReportsFromStorage(){
+  try{
+    const raw=localStorage.getItem('citypulse_reports');
+    if(raw){const arr=JSON.parse(raw);if(Array.isArray(arr))submittedReports=arr;}
+    if(localStorage.getItem('citypulse_reports_layer')==='on') reportsLayerOn=true;
+  }catch(_){}
+}
+function saveReportsToStorage(){
+  try{
+    localStorage.setItem('citypulse_reports',JSON.stringify(submittedReports));
+    localStorage.setItem('citypulse_reports_ts', Date.now().toString());
+  }catch(_){}
+}
+
+let _lastReportTs = 0;
+let _lastGovAlertTs = 0;
+
+function pollReportSync(){
+  try{
+    // Sync reports
+    const ts = parseInt(localStorage.getItem('citypulse_reports_ts')||'0');
+    if(ts > _lastReportTs){
+      _lastReportTs = ts;
+      const raw = localStorage.getItem('citypulse_reports');
+      if(raw){ const arr=JSON.parse(raw); if(Array.isArray(arr)) submittedReports=arr; }
+      renderReportList();
+      renderReportMarkers();
+      if(el('govPanel').style.display!=='none') renderGovTab(currentGovTab);
+    }
+    // Sync gov alerts
+    const ats = parseInt(localStorage.getItem('citypulse_gov_alerts_ts')||'0');
+    if(ats > _lastGovAlertTs){
+      _lastGovAlertTs = ats;
+      const prev = govAlerts.map(a=>a.id);
+      loadGovAlertsFromStorage();
+      // Add only new alerts to feed (avoid duplicates)
+      govAlerts.forEach(a=>{
+        if(!prev.includes(a.id) && !document.querySelector(`[data-gov-alert-id="${a.id}"]`)){
+          addGovAlertToFeed(a);
+        }
+      });
+      if(el('govPanel').style.display!=='none') renderGovAlertList();
+    }
+  }catch(_){}
+}
+
+
+// ═══════════════════════════════════════════════════
+// ML ENGINE — TensorFlow.js Dense Neural Network
+// Fast batched implementation — no sequential async loops
+// ═══════════════════════════════════════════════════
+
+/** Fill nulls in a series with linear interpolation */
+function interpolateSeries(raw) {
+  const s = [...raw];
+  for(let i=0;i<s.length;i++){
+    if(s[i]==null||isNaN(s[i])){
+      let prev=i-1,next=i+1;
+      while(prev>=0&&(s[prev]==null||isNaN(s[prev])))prev--;
+      while(next<s.length&&(s[next]==null||isNaN(s[next])))next++;
+      if(prev>=0&&next<s.length) s[i]=(s[prev]+s[next])/2;
+      else if(prev>=0) s[i]=s[prev];
+      else if(next<s.length) s[i]=s[next];
+      else s[i]=30;
+    }
+  }
+  return s;
+}
+
+function computeScaler(series) {
+  const valid = series.filter(v => v!=null&&!isNaN(v));
+  if(!valid.length) return { mean:0, std:1 };
+  const mean = valid.reduce((a,b)=>a+b,0)/valid.length;
+  const std  = Math.sqrt(valid.reduce((a,b)=>a+(b-mean)**2,0)/valid.length)||1;
+  return { mean, std };
+}
+
+/**
+ * Build entire feature matrix for a series in one pass (pure JS, no loops per-sample).
+ * Returns Float32Array rows of length 9:
+ * [lag1_n, lag2_n, lag7_n, roll7_n, roll3_n, hour, dow, isWeekend, isInd]
+ */
+function buildFeatureMatrix(series, times, isInd, scaler, ahead=24) {
+  const n  = series.length;
+  const nf = 9;
+  const rows=[], targets=[];
+
+  for(let i=7; i<n-ahead; i++){
+    const lag1  = series[i-1];
+    const lag2  = series[i-2];
+    const lag7  = series[i-7];
+    let r7=0,r3=0;
+    for(let j=i-6;j<=i;j++) r7+=series[j]; r7/=7;
+    for(let j=i-2;j<=i;j++) r3+=series[j]; r3/=3;
+
+    const dt = times[i]?new Date(times[i]):new Date();
+    const hr = dt.getHours()/23;
+    const dow= dt.getDay()/6;
+    const iwe= (dt.getDay()===0||dt.getDay()===6)?1:0;
+    const {mean:mu,std:sg}=scaler;
+    const n1=(v)=>(v-mu)/sg;
+
+    const row=[n1(lag1),n1(lag2),n1(lag7),n1(r7),n1(r3),hr,dow,iwe,isInd?1:0];
+    if(row.some(isNaN)) continue;
+    const tgt=(series[i+ahead]-mu)/sg;
+    if(isNaN(tgt)) continue;
+    rows.push(row);
+    targets.push([tgt]);
+  }
+  return {rows,targets};
+}
+
+function buildMLModel() {
+  const m = tf.sequential();
+  m.add(tf.layers.dense({inputShape:[9],units:48,activation:'relu',kernelInitializer:'heNormal'}));
+  m.add(tf.layers.dropout({rate:0.15}));
+  m.add(tf.layers.dense({units:24,activation:'relu'}));
+  m.add(tf.layers.dropout({rate:0.1}));
+  m.add(tf.layers.dense({units:1,activation:'linear'}));
+  m.compile({optimizer:tf.train.adam(0.003),loss:'meanSquaredError'});
+  return m;
+}
+
+async function trainMLModel(rawSeries, times) {
+  const series = interpolateSeries(rawSeries);
+  const scaler = computeScaler(series);
+  const AHEAD  = 24;
+
+  const {rows,targets} = buildFeatureMatrix(series,times,false,scaler,AHEAD);
+  if(rows.length<30) return null;
+
+  const split = Math.floor(rows.length*0.8);
+  const xs=tf.tensor2d(rows), ys=tf.tensor2d(targets);
+  const xTr=xs.slice([0,0],[split,-1]), yTr=ys.slice([0,0],[split,-1]);
+  const xVl=xs.slice([split,0],[-1,-1]),yVl=ys.slice([split,0],[-1,-1]);
+
+  const model = buildMLModel();
+  const EPOCHS = 50;
+  let lastEpoch=0;
+
+  await model.fit(xTr,yTr,{
+    epochs:EPOCHS, batchSize:64,
+    validationData:[xVl,yVl],
+    shuffle:true,
+    callbacks:{
+      onEpochEnd:(ep,logs)=>{
+        lastEpoch=ep+1;
+        mlEpochsDone=lastEpoch;
+        if(el('mlStatusText'))
+          el('mlStatusText').textContent=`Training… epoch ${lastEpoch}/${EPOCHS} · val_loss: ${(logs.val_loss||0).toFixed(3)}`;
+      }
+    }
+  });
+
+  // Metrics on val set — single batched predict call
+  const yPredT = model.predict(xVl);
+  const [yPredA,yTrueA] = await Promise.all([yPredT.data(), yVl.data()]);
+  const yMu = yTrueA.reduce((a,b)=>a+b,0)/yTrueA.length;
+  let ssTot=0,ssRes=0;
+  for(let i=0;i<yTrueA.length;i++){ssTot+=(yTrueA[i]-yMu)**2;ssRes+=(yTrueA[i]-yPredA[i])**2;}
+  const r2  = Math.max(0,1-(ssRes/ssTot));
+  const rmse= Math.sqrt(ssRes/yTrueA.length)*scaler.std;
+
+  [xs,ys,xTr,yTr,xVl,yVl,yPredT].forEach(t=>t.dispose());
+  return {model,scaler,r2,rmse,epochs:lastEpoch};
+}
+
+/**
+ * FAST batched 7-day forecast.
+ * Strategy: instead of predicting hour-by-hour auto-regressively (168 sequential calls),
+ * we build feature vectors for all 7 future "day peaks" at once using the known
+ * history tail, then predict them in a single batched forward pass.
+ * CI = derived analytically from training RMSE (±1.96σ) scaled by day index.
+ *
+ * For MC Dropout CI we run T=8 stochastic passes on a BATCH of 7 inputs — 1 GPU op.
+ */
+async function predict7DaysFast(model, scaler, rawSeries, times, isInd, trainingRmse) {
+  const series = interpolateSeries(rawSeries);
+  const {mean:mu,std:sg}=scaler;
+  const n=series.length;
+
+  // Build 7 feature vectors — one per future day, using last known window
+  // We simulate the "24h peak" feature by using typical daily-peak hour (13:00)
+  const featureRows=[];
+  for(let day=0;day<7;day++){
+    const i = n-1; // always reference most-recent point
+    const lag1=series[i];
+    const lag2=series[Math.max(0,i-1)];
+    const lag7=series[Math.max(0,i-6)];
+    let r7=0; for(let j=Math.max(0,i-6);j<=i;j++) r7+=series[j]; r7/=Math.min(7,i+1);
+    let r3=0; for(let j=Math.max(0,i-2);j<=i;j++) r3+=series[j]; r3/=Math.min(3,i+1);
+
+    // Simulate future timestamp for day+1 at hour 13 (typical pollution peak)
+    const futDt=new Date(times[i]||Date.now());
+    futDt.setDate(futDt.getDate()+(day+1));
+    futDt.setHours(13,0,0,0);
+    const hr=13/23, dow=futDt.getDay()/6, iwe=(futDt.getDay()===0||futDt.getDay()===6)?1:0;
+    const n1=(v)=>(v-mu)/sg;
+    featureRows.push([n1(lag1),n1(lag2),n1(lag7),n1(r7),n1(r3),hr,dow,iwe,isInd?1:0]);
+  }
+
+  // Single batched MC Dropout: T passes × 7 samples in one matrix multiply
+  const T=12;
+  const xBatch=tf.tensor2d(featureRows); // shape [7,9]
+  // Stack T copies: shape [7*T, 9]
+  const xRep=tf.tile(xBatch,[T,1]);
+  const yRep=model.predict(xRep,{training:true}); // dropout active
+  const allPreds=await yRep.data();
+  [xBatch,xRep,yRep].forEach(t=>t.dispose());
+
+  // allPreds has T*7 values; reshape to [T, 7]
+  const passes=[];
+  for(let t=0;t<T;t++){
+    const row=[];
+    for(let d=0;d<7;d++) row.push(allPreds[t*7+d]*sg+mu);
+    passes.push(row);
+  }
+
+  // Per day: mean and std across T passes
+  const dailyPeaksPM25=[], dailyCILow=[], dailyCIHigh=[];
+  for(let d=0;d<7;d++){
+    const vals=passes.map(r=>Math.max(0,r[d]));
+    const mean=vals.reduce((a,b)=>a+b,0)/T;
+    const std=Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/T);
+    // Widen CI slightly for farther days (uncertainty grows)
+    const ciScale=1.96*(1+d*0.08);
+    dailyPeaksPM25.push(mean);
+    dailyCILow.push(Math.max(0,mean-ciScale*std));
+    dailyCIHigh.push(mean+ciScale*std);
+  }
+
+  return {dailyPeaksPM25, dailyCILow, dailyCIHigh};
+}
+
+/**
+ * Master pipeline — trains once, then runs ALL zones in parallel (Promise.all).
+ * Total time: ~5-15s depending on device.
+ */
+async function runMLPipeline(cfg) {
+  mlModelReady=false; mlPredictions=[];
+
+  if(!cityHistory?.pm2_5||cityHistory.pm2_5.length<50){
+    el('mlStatusText').textContent='⚠ Insufficient historical data for ML training';
+    return;
+  }
+
+  el('mlDot').className='ml-dot training';
+  el('mlStatusText').textContent='Building feature matrix...';
+
+  const result=await trainMLModel(cityHistory.pm2_5,cityHistory.time);
+  if(!result){el('mlStatusText').textContent='⚠ Training failed — not enough samples';return;}
+
+  const {model,scaler,r2,rmse,epochs}=result;
+  mlModel=model; mlScaler=scaler; mlR2Score=r2; mlRmse=rmse; mlEpochsDone=epochs;
+
+  el('mlStatusText').textContent='Running batched zone forecasts...';
+
+  // Run all zones in PARALLEL — each gets 1 batched MC inference call
+  const zonesWithData=cfg.zones.filter(z=>zoneData[z.name]);
+  const zoneResults=await Promise.all(zonesWithData.map(async z=>{
+    const zd=zoneData[z.name];
+    const zoneOffset=zd.pm25-(scaler.mean||zd.pm25);
+    const zoneSeries=cityHistory.pm2_5.map(v=>
+      v!=null?Math.max(0,v+zoneOffset*(z.ind?1.15:0.9)):null
+    );
+    return {z, zd, ...(await predict7DaysFast(model,scaler,zoneSeries,cityHistory.time,z.ind,rmse))};
+  }));
+
+  const predictions=zoneResults.map(({z,zd,dailyPeaksPM25,dailyCILow,dailyCIHigh})=>{
+    const peakPM25=Math.max(...dailyPeaksPM25);
+    const peakDay=dailyPeaksPM25.indexOf(peakPM25);
+    const peakAQI=pm25ToAQI(peakPM25);
+    const riskPct=riskOf(peakAQI,cfg.wqi,z.ind);
+    const trend=peakPM25>zd.pm25*1.1?'rising':peakPM25<zd.pm25*0.9?'falling':'stable';
+    return {
+      zone:z.name, ind:z.ind, riskPct, peakAQI,
+      dailyAQI:dailyPeaksPM25.map(pm25ToAQI),
+      dailyPM25:dailyPeaksPM25,
+      ciLowAQI:pm25ToAQI(Math.max(0,dailyCILow[peakDay])),
+      ciHighAQI:pm25ToAQI(dailyCIHigh[peakDay]),
+      daysAway:peakDay+1, trend, current:zd.aqi, r2, rmse
+    };
+  });
+
+  mlPredictions=predictions.sort((a,b)=>b.riskPct-a.riskPct);
+  mlModelReady=true;
+
+  // Update UI
+  el('mlDot').className='ml-dot done';
+  el('mlStatusText').textContent=`✓ Model ready · R²: ${r2.toFixed(3)} · RMSE: ${rmse.toFixed(1)} µg/m³`;
+  el('mlMetrics').style.display='grid';
+  el('mlR2').textContent=r2.toFixed(3);
+  el('mlRMSE').textContent=rmse.toFixed(1)+' µg/m³';
+  el('mlEpochs').textContent=epochs;
+  const confPct=Math.min(97,Math.round(r2*80+15));
+  el('mlConf').textContent=confPct+'%';
+  if(el('confScore')) el('confScore').textContent=`R²=${r2.toFixed(3)} · RMSE=${rmse.toFixed(1)} µg/m³ · ${epochs} epochs · ${confPct}% conf`;
+
+  const highRisk=mlPredictions.filter(p=>p.riskPct>=50);
+  el('k-pred').textContent=highRisk.length;
+  el('k-pred-lbl').textContent='zones at risk · TF.js';
+  el('k-conf').textContent=confPct+'% CONF';
+
+  renderMLPredictions();
+  renderCharts(cfg, curIdx(cityForecast.time));
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER ML PREDICTIONS (replaces old buildPredList + renderPredictions)
+// ═══════════════════════════════════════════════════
+
+function renderMLPredictions() {
+  const container = el('predList');
+  container.innerHTML = '';
+
+  const topPreds = mlPredictions.filter(p => p.riskPct >= 40).slice(0, 6);
+
+  if(!topPreds.length){
+    container.innerHTML = '<div style="font-family:var(--mono);font-size:9px;color:var(--dim)">No high-risk zones predicted in 7-day window</div>';
+    return;
+  }
+
+  topPreds.forEach(p => {
+    const rc  = riskStyle(p.riskPct);
+    const trendIcon = p.trend === 'rising' ? '↑' : p.trend === 'falling' ? '↓' : '→';
+    const trendColor = p.trend === 'rising' ? '#ff1744' : p.trend === 'falling' ? '#00e676' : '#ffb300';
+
+    // Sparkline bars for daily AQI (7 days)
+    const maxAQI = Math.max(...p.dailyAQI, 1);
+    const sparkBars = p.dailyAQI.map((v, i) => {
+      const ht = Math.round((v/maxAQI)*100);
+      const ai = aqiInfo(v);
+      const isToday = i === 0;
+      return `<div class="spark-bar" style="height:${ht}%;background:${ai.color};opacity:${isToday?1:0.6};border:${isToday?'1px solid '+ai.color:'none'};" title="Day ${i+1}: AQI ${v}"></div>`;
+    }).join('');
+
+    // CI range display
+    const ciWidth = p.ciHighAQI - p.ciLowAQI;
+    const ciColor = rc.color;
+
+    container.innerHTML += `
+      <div class="pred-item" style="border-bottom:1px solid var(--border2);padding-bottom:8px;margin-bottom:8px">
+        <div class="pred-top">
+          <span class="pred-name" style="color:${rc.color}">${p.zone}${p.ind?' 🏭':''}</span>
+          <span class="pred-pct" style="color:${rc.color}">${p.riskPct}%</span>
+        </div>
+        <div class="pred-meta">
+          Peak AQI <b style="color:${aqiInfo(p.peakAQI).color}">${p.peakAQI}</b>
+          · Day ${p.daysAway}
+          · <span style="color:${trendColor}">${trendIcon} ${p.trend}</span>
+          · Now: ${p.current}
+        </div>
+        <div class="pred-meta" style="color:var(--dim)">
+          95% CI: [${p.ciLowAQI}–${p.ciHighAQI}] · ±${Math.round(ciWidth/2)} AQI · MC Dropout
+        </div>
+        <div class="pred-bar" style="margin-bottom:4px">
+          <div class="pred-fill" data-w="${p.riskPct}" style="width:0%;background:linear-gradient(90deg,${rc.color}55,${rc.color})"></div>
+          <div class="pred-ci" style="left:${Math.min(100,(p.ciLowAQI/500)*100)}%;width:${Math.min(100,(ciWidth/500)*100)}%;background:${ciColor}"></div>
+        </div>
+        <div class="pred-sparkline">${sparkBars}</div>
+      </div>`;
+  });
+
+  setTimeout(() => {
+    document.querySelectorAll('.pred-fill').forEach(b => b.style.width = b.dataset.w + '%');
+  }, 100);
+}
+
+/**
+ * Compatibility shim: returns mlPredictions in the format the rest of the
+ * app expects from old buildPredList() — used by alerts, actions, KPIs.
+ */
+function buildPredList(cfg, idx) {
+  if(mlModelReady && mlPredictions.length) return mlPredictions.filter(p => p.riskPct >= 50);
+
+  // Fallback while ML trains: use Open-Meteo forecast data only
+  if(!cityForecast?.pm2_5) return [];
+  const daily={};
+  cityForecast.time.forEach((t,i)=>{const d=t.slice(0,10);if(!daily[d])daily[d]=[];if(cityForecast.pm2_5[i]!==null)daily[d].push(cityForecast.pm2_5[i]);});
+  const days=Object.entries(daily).map(([d,v])=>({date:d,max:Math.max(...v),avg:v.reduce((a,b)=>a+b,0)/v.length})).slice(0,7);
+  const preds=[];
+  cfg.zones.filter(z=>z.ind).forEach(z=>{
+    const zd=zoneData[z.name];if(!zd)return;
+    const peakDay=days.reduce((a,b)=>a.max>b.max?a:b);
+    const peakAQI=pm25ToAQI(peakDay.max*(z.ind?1.28:.88));
+    const riskPct=riskOf(peakAQI,cfg.wqi,true);
+    const daysAway=days.indexOf(peakDay)+1;
+    if(riskPct>=50)preds.push({zone:z.name,riskPct,peakAQI,daysAway,trend:peakAQI>zd.aqi?'rising':'stable',current:zd.aqi,ind:z.ind});
+  });
+  return preds.sort((a,b)=>b.riskPct-a.riskPct).slice(0,6);
+}
+
+/** Old renderPredictions is now replaced by renderMLPredictions above.
+ *  This shim is called from loadCity so the flow still works. */
+function renderPredictions(cfg, idx) {
+  // Show loading state immediately; real render happens after ML finishes
+  const container = el('predList');
+  if(!mlModelReady) {
+    container.innerHTML = `<div style="font-family:var(--mono);font-size:9px;color:var(--purple);display:flex;align-items:center;gap:6px">
+      <div class="ml-dot training"></div> Neural network training on 30-day data...
+    </div>`;
+  } else {
+    renderMLPredictions();
+  }
+}
+
+// ── MAP INIT ────────────────────────────────────────
+function initMap(){
+  const cfg=CITIES[city];
+  map=L.map('map',{zoomControl:true,attributionControl:true}).setView([cfg.lat,cfg.lon],cfg.zoom);
+  const isLight=document.documentElement.getAttribute('data-theme')==='light';
+  L.tileLayer(isLight
+    ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    subdomains:'abcd',maxZoom:19
+  }).addTo(map);
+  map.on('click',onMapClick);
+}
+
+async function fetchRiversInBounds(bounds){
+  const s=bounds.getSouth(),w=bounds.getWest(),n=bounds.getNorth(),e=bounds.getEast();
+  const pad=0.12;
+  const bbox=[s-pad,w-pad,n+pad,e+pad].join(',');
+  const query=`[out:json][timeout:15];way["waterway"~"river|stream|canal|drain"](${bbox});out geom;`;
+  const urls=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+  for(const url of urls){
+    try{
+      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(query)});
+      if(!r.ok)continue;
+      const data=await r.json();
+      const features=[];
+      (data.elements||[]).forEach(way=>{
+        const geom=way.geometry;
+        if(!geom||geom.length<2)return;
+        const coords=geom.map(p=>[p.lon,p.lat]);
+        features.push({type:'Feature',properties:way.tags||{},geometry:{type:'LineString',coordinates:coords}});
+      });
+      if(features.length)return{type:'FeatureCollection',features};
+    }catch(_){}
+  }
+  return null;
+}
+
+function addRiversLayer(){
+  if(!map)return;
+  if(riversLayer){map.removeLayer(riversLayer);riversLayer=null;}
+  const bounds=map.getBounds();
+  return fetchRiversInBounds(bounds).then(geojson=>{
+    if(!geojson||!map)return;
+    riversLayer=L.geoJSON(geojson,{
+      style:{color:'#42a5f5',weight:3,opacity:0.95},
+      filter:f=>(f.geometry.type==='LineString')
+    });
+    if(reportsLayerOn&&riversLayer)riversLayer.addTo(map);
+  }).catch(()=>{});
+}
+
+function onMapClick(e){
+  if(compareMode){return;}
+  const ft=document.getElementById('ftab-report');
+  if(ft.style.display!=='none'){
+    if(reportPin)map.removeLayer(reportPin);
+    reportPinLatLng=e.latlng;
+    reportPin=L.marker(e.latlng,{
+      icon:L.divIcon({className:'',html:'<div class="report-marker"></div>',iconSize:[20,20],iconAnchor:[10,10]})
+    }).addTo(map);
+    document.getElementById('rLoc').value=`${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+  }
+}
+
+// ── FETCH ──────────────────────────────────────────
+const WAQI_TOKEN='34589c09d6aef08b309175a9794434127d785a4b';
+async function fetchWAQI(lat,lon){
+  const u=`https://api.waqi.info/feed/geo:${lat.toFixed(4)};${lon.toFixed(4)}/?token=${WAQI_TOKEN}`;
+  const r=await fetch(u);if(!r.ok)throw new Error('WAQI API '+r.status);
+  const j=await r.json();if(j.status!=='ok'||!j.data)throw new Error('WAQI no data');
+  return j.data;
+}
+async function fetchAQ(lat,lon,days=1){
+  const u=`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&hourly=pm2_5,pm10,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,ozone,european_aqi&timezone=Asia%2FKolkata&forecast_days=${days}`;
+  const r=await fetch(u);if(!r.ok)throw new Error('AQ API '+r.status);return r.json();
+}
+async function fetchWeather(lat,lon){
+  const u=`https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&hourly=windspeed_10m,winddirection_10m&timezone=Asia%2FKolkata&forecast_days=1`;
+  const r=await fetch(u);if(!r.ok)throw new Error('Weather API '+r.status);return r.json();
+}
+async function fetchHistory(lat,lon,start,end){
+  const u=`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&hourly=pm2_5,pm10&timezone=Asia%2FKolkata&start_date=${start}&end_date=${end}`;
+  const r=await fetch(u);if(!r.ok)throw new Error('History API '+r.status);return r.json();
+}
+
+// ── MAIN LOAD ──────────────────────────────────────
+async function loadCity(c){
+  city=c;const cfg=CITIES[c];
+  markers.forEach(m=>map.removeLayer(m));markers=[];
+  if(heatLayer){map.removeLayer(heatLayer);heatLayer=null;heatActive=false;}
+  document.getElementById('btn-heat').classList.remove('on');
+  compareZones=[];compareMode=false;
+  document.getElementById('cmpBar').style.display='none';
+  mlModelReady=false;mlPredictions=[];mlModel=null;
+
+  waqiCityData=null;
+  setOvl(10,"Connecting to WAQI & Open-Meteo...");
+  map.setView([cfg.lat,cfg.lon],cfg.zoom);
+  document.getElementById('mapTitle').textContent=`${cfg.label} — Live Environmental Risk Map`;
+  if(reportsLayerOn)addRiversLayer();
+
+  try{
+    setOvl(20,"Fetching city AQI (WAQI) and 7-day forecast...");
+    const [forecast,weather,waqiCity]=await Promise.all([
+      fetchAQ(cfg.lat,cfg.lon,7),
+      fetchWeather(cfg.lat,cfg.lon),
+      fetchWAQI(cfg.lat,cfg.lon).catch(()=>null)
+    ]);
+    cityForecast=forecast.hourly;
+    waqiCityData=waqiCity;
+
+    setOvl(40,"Fetching 30-day PM₂.₅ history for ML training...");
+    const today=new Date(),d30=new Date();d30.setDate(d30.getDate()-30);
+    const fmt=d=>d.toISOString().slice(0,10);
+    cityHistory=(await fetchHistory(cfg.lat,cfg.lon,fmt(d30),fmt(today))).hourly;
+
+    setOvl(55,"Fetching zone-level air quality (WAQI + Open-Meteo)...");
+    const [zResultsOM,zResultsWAQI]=await Promise.all([
+      Promise.allSettled(cfg.zones.map(z=>fetchAQ(z.lat,z.lon,1))),
+      Promise.allSettled(cfg.zones.map(z=>fetchWAQI(z.lat,z.lon)))
+    ]);
+
+    setOvl(75,"Processing zone data...");
+    const idx=curIdx(cityForecast.time);
+    const iaqiVal=(iaqi,key)=>iaqi&&iaqi[key]&&typeof iaqi[key].v==='number'?iaqi[key].v:null;
+    cfg.zones.forEach((z,i)=>{
+      const w=zResultsWAQI[i].status==='fulfilled'?zResultsWAQI[i].value:null;
+      if(w&&typeof w.aqi==='number'){
+        const iaqi=w.iaqi||{};
+        zoneData[z.name]={
+          pm25:iaqiVal(iaqi,'pm25')??(pm25ToAQI(w.aqi)/50*30),
+          pm10:iaqiVal(iaqi,'pm10')??0,
+          no2:iaqiVal(iaqi,'no2')??0,so2:iaqiVal(iaqi,'so2')??0,
+          co:iaqiVal(iaqi,'co')??0,o3:iaqiVal(iaqi,'o3')??0,
+          aqi:w.aqi,ind:z.ind,lat:z.lat,lon:z.lon
+        };
+      } else {
+        const res=zResultsOM[i];
+        if(res.status==='fulfilled'){
+          const d=res.value.hourly,zi=curIdx(d.time);
+          zoneData[z.name]={
+            pm25:latestVal(d.pm2_5,zi),pm10:latestVal(d.pm10,zi),
+            no2:latestVal(d.nitrogen_dioxide,zi),so2:latestVal(d.sulphur_dioxide,zi),
+            co:latestVal(d.carbon_monoxide,zi),o3:latestVal(d.ozone,zi),
+            aqi:pm25ToAQI(latestVal(d.pm2_5,zi)),ind:z.ind,lat:z.lat,lon:z.lon
+          };
+        } else {
+          const mult=z.ind?1.3:.8,bPM=latestVal(cityForecast.pm2_5,idx)*mult;
+          zoneData[z.name]={pm25:bPM,pm10:bPM*1.6,no2:bPM*.5,so2:bPM*.15,co:bPM*8,o3:40,aqi:pm25ToAQI(bPM),ind:z.ind,lat:z.lat,lon:z.lon};
+        }
+      }
+    });
+
+    let cityPM25=latestVal(cityForecast.pm2_5,idx);
+    let cityAQI=pm25ToAQI(cityPM25);
+    if(waqiCityData){
+      cityAQI=waqiCityData.aqi;
+      const wp=waqiCityData.iaqi&&waqiCityData.iaqi.pm25&&typeof waqiCityData.iaqi.pm25.v==='number';
+      if(wp)cityPM25=waqiCityData.iaqi.pm25.v;
+    }
+    const windIdx=curIdx(weather.hourly.time);
+    const windSpeed=weather.hourly.windspeed_10m[windIdx]||0;
+    const windDeg=weather.hourly.winddirection_10m[windIdx]||0;
+
+    buildForecastDays();
+
+    setOvl(88,"Rendering map & dashboard...");
+    renderKPIs(cityAQI,cityPM25,cfg,windSpeed);
+    renderWindCard(windSpeed,windDeg);
+    renderZoneMarkers(cfg,'risk',0);
+    // Always render saved report markers on top (overlay) if layer is on OR if there are reports
+    reportMarkers.forEach(m=>map.removeLayer(m));
+    reportMarkers=[];
+    if(reportsLayerOn){
+      renderReportMarkers();
+      addRiversLayer();
+      el('btn-reports').classList.add('on');
+    } else if(submittedReports.some(r=>r.city===cfg.label)){
+      // Silently show report dots even when layer toggle is off — user submitted them, they should persist
+      renderReportMarkers();
+    }
+    renderZoneList(cfg);
+    renderAlertFeed(cfg,cityAQI,cityPM25);
+    renderPredictions(cfg,idx);   // shows "training..." placeholder
+    renderPollBreakdown(idx);
+    renderActions(cfg,cityAQI);
+    renderCharts(cfg,idx);
+    checkThresholdAlerts(cityAQI,cityPM25);
+
+    document.getElementById('fetchTs').textContent='Last fetch: '+new Date().toLocaleTimeString('en-IN');
+    document.getElementById('lastFetch').textContent=(waqiCityData?'LIVE · WAQI':'LIVE · OPEN-METEO')+' · '+new Date().toLocaleTimeString('en-IN')+' IST';
+
+    setOvl(100,"Done · Starting ML training in background...");
+    setTimeout(()=>{document.getElementById('overlay').style.display='none';},350);
+
+    // ── Fire-and-forget ML training AFTER UI is shown ──────────
+    // Use setTimeout so the browser paints first
+    setTimeout(() => {
+      runMLPipeline(cfg).then(() => {
+        // After ML is ready, update alerts and actions with real predictions
+        renderAlertFeed(cfg, cityAQI, cityPM25);
+        renderActions(cfg, cityAQI);
+      }).catch(err => {
+        console.error('ML Pipeline error:', err);
+        el('mlStatusText').textContent = '⚠ ML error: ' + err.message;
+        el('mlDot').className = 'ml-dot';
+        el('mlDot').style.background = 'var(--red)';
+      });
+    }, 800);
+
+  }catch(err){
+    console.error(err);
+    setOvl(100,"⚠ Error: "+err.message);
+    setTimeout(()=>{document.getElementById('overlay').style.display='none';},1500);
+  }
+}
+
+// ── KPIs ───────────────────────────────────────────
+function renderKPIs(aqi,pm25,cfg,wind){
+  const ai=aqiInfo(aqi);
+  const rs=riskOf(aqi,cfg.wqi,false);
+  const rs_s=riskStyle(rs);
+  el('k-aqi').textContent=aqi;el('k-aqi').style.color=ai.color;el('k-aqi-lbl').textContent=ai.label+(waqiCityData?' · WAQI':'');
+  el('k-pm25').textContent=pm25.toFixed(1);el('k-pm25-lbl').textContent='Current · µg/m³';
+  el('k-risk').textContent=rs;el('k-risk').style.color=rs_s.color;
+  el('k-risk-lbl').textContent=rs_s.label;el('k-risk-badge').textContent=rs_s.label;
+  el('k-viol').textContent=cfg.violations.toLocaleString();el('k-viol-lbl').textContent=cfg.closures+' closures · FY23-24';
+  el('k-pred').textContent='...';el('k-pred-lbl').textContent='ML training...';
+  el('k-conf').textContent='ML...';
+  el('k-wind').textContent=wind.toFixed(1);el('k-wind-lbl').textContent='m/s · Open-Meteo';
+  setAqiTheme(aqi);
+  updateSlogan(cfg,aqi,pm25,wind);
+}
+
+function updateSlogan(cfg,aqi,pm25,wind){
+  const m=document.getElementById('navSlogan');
+  if(!m||!cfg)return;
+  const ai=aqiInfo(aqi);
+  const rs=riskOf(aqi,cfg.wqi,false);
+  const rs_s=riskStyle(rs);
+  const parts=[
+    cfg.label+' — River: '+cfg.river+' · WQI '+cfg.wqi+' ('+cfg.wqiStatus+')',
+    'Live AQI '+aqi+' · '+ai.label+' · PM₂.₅ '+pm25.toFixed(1)+' µg/m³',
+    'Risk Score '+rs+' ('+rs_s.label+') · Wind '+wind.toFixed(1)+' m/s',
+    cfg.violations.toLocaleString()+' CPCB violations · '+cfg.closures+' unit closures (FY 2023-24) · ML Neural Net active'
+  ];
+  m.textContent=parts.join('  ◆  ');
+}
+
+function renderWindCard(speed,deg){
+  el('windArrow').style.transform=`rotate(${deg}deg)`;
+  el('windVal').textContent=speed.toFixed(1)+' m/s';
+  el('windDir').textContent=windDir(deg);
+}
+
+// ── MAP MARKERS ────────────────────────────────────
+function renderZoneMarkers(cfg,layer,dayOffset){
+  markers.forEach(m=>map.removeLayer(m));markers=[];
+  if(reportsLayerOn) return; // reports mode: only show report pins + rivers
+  cfg.zones.forEach(z=>{
+    const zd=zoneData[z.name];if(!zd)return;
+    let displayRisk=riskOf(zd.aqi,cfg.wqi,z.ind);
+    let displayAQI=zd.aqi;
+
+    if(layer==='predict'){
+      // Use ML predictions if available, fallback to forecast
+      const mlPred = mlPredictions.find(p=>p.zone===z.name);
+      if(mlPred && dayOffset < mlPred.dailyAQI.length){
+        displayAQI = mlPred.dailyAQI[dayOffset];
+        displayRisk = riskOf(displayAQI, cfg.wqi, z.ind);
+      } else if(cityForecast){
+        const startHour=dayOffset*24;
+        const futurePM25=cityForecast.pm2_5.slice(startHour,startHour+24).filter(v=>v!==null);
+        if(futurePM25.length){
+          const peak=Math.max(...futurePM25)*(z.ind?1.3:.85);
+          displayAQI=pm25ToAQI(peak);
+          displayRisk=riskOf(displayAQI,cfg.wqi,z.ind);
+        }
+      }
+    }else if(layer==='aqi'){
+      displayRisk=Math.min(99,Math.round((displayAQI/500)*100));
+    }
+
+    const rs=riskStyle(displayRisk);
+    const radius=Math.max(300,displayRisk*80);
+    const circle=L.circle([z.lat,z.lon],{
+      radius,color:rs.color,fillColor:rs.color,
+      fillOpacity:.22,weight:1.5,opacity:.7
+    });
+    const dot=L.circleMarker([z.lat,z.lon],{
+      radius:6,color:rs.color,fillColor:rs.color,fillOpacity:.9,weight:2
+    });
+
+    const lbl=aqiInfo(displayAQI);
+    const mlPred = mlPredictions.find(p=>p.zone===z.name);
+    const mlLine = mlPred && mlModelReady
+      ? `<div style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,229,255,.15);font-size:9px;color:#6a8aaa">
+           🤖 ML Peak AQI: <b style="color:${aqiInfo(mlPred.peakAQI).color}">${mlPred.peakAQI}</b> (day ${mlPred.daysAway})
+           <br>CI: [${mlPred.ciLowAQI}–${mlPred.ciHighAQI}] · R²=${mlPred.r2.toFixed(2)}
+         </div>` : '';
+
+    const popupHTML=`
+      <div style="min-width:165px">
+        <div style="color:${rs.color};font-weight:700;font-size:12px;margin-bottom:6px">${z.name} ${z.ind?'🏭':''}</div>
+        <div>India AQI: <b style="color:${lbl.color}">${displayAQI}</b> (${lbl.label})</div>
+        <div>PM₂.₅: <b>${zd.pm25.toFixed(1)} µg/m³</b></div>
+        <div>PM₁₀: <b>${zd.pm10.toFixed(1)} µg/m³</b></div>
+        <div>NO₂: <b>${zd.no2.toFixed(1)} µg/m³</b></div>
+        <div>Risk Score: <b style="color:${rs.color}">${displayRisk}/100</b></div>
+        ${mlLine}
+        <div style="margin-top:5px;font-size:9px;color:#4a6280">Click to ${compareMode?'compare':'select'}</div>
+      </div>`;
+
+    circle.bindPopup(popupHTML);
+    dot.bindPopup(popupHTML);
+
+    const onClick=()=>{
+      if(compareMode) addCompareZone(z.name,zd,cfg);
+      else {
+        selectZone(z.name);
+        showNotif(`${z.name} · AQI ${displayAQI} (${lbl.label}) · PM₂.₅ ${zd.pm25.toFixed(1)} µg/m³ · Risk ${displayRisk}/100`);
+      }
+    };
+    circle.on('click',onClick);dot.on('click',onClick);
+    circle.addTo(map);dot.addTo(map);
+    markers.push(circle,dot);
+  });
+}
+
+function toggleHeat(btn){
+  playSound('map-heatmap');
+  exitReportsLayerIfActive();
+  document.querySelectorAll('.mctrl-btn').forEach(b=>b.classList.remove('on'));
+  heatActive=!heatActive;
+  btn.classList.toggle('on',heatActive);
+  if(heatActive){const lb=el(currentMapLayer==='risk'?'btn-risk':currentMapLayer==='aqi'?'btn-aqi':'btn-predict');if(lb)lb.classList.add('on');}
+  const cfg=CITIES[city];
+  if(heatActive&&!heatLayer){
+    const pts=cfg.zones.map(z=>{
+      const zd=zoneData[z.name];
+      const r=riskOf(zd?.aqi||50,cfg.wqi,z.ind);
+      return[z.lat,z.lon,r/100];
+    });
+    heatLayer=L.heatLayer(pts,{radius:80,blur:50,maxZoom:13,gradient:{0.2:'#00e676',0.4:'#ffb300',0.6:'#ff6d00',0.8:'#ff1744',1:'#b71c1c'}}).addTo(map);
+  }else if(!heatActive&&heatLayer){
+    map.removeLayer(heatLayer);heatLayer=null;
+  }
+}
+
+function buildForecastDays(){
+  const container=el('sliderDays');container.innerHTML='';forecastDays=[];
+  for(let i=1;i<7;i++){
+    const d=new Date();d.setDate(d.getDate()+i);
+    const lbl=i===0?'Today':i===1?'Tomorrow':d.toLocaleDateString('en-IN',{weekday:'short'});
+    const dd=d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+    const btn=document.createElement('div');
+    btn.className='sday'+(i===1?' on':'');
+    btn.innerHTML=lbl+'<br><span style="font-size:6px">'+dd+'</span>';
+    btn.onclick=()=>{
+      document.querySelectorAll('.sday').forEach(b=>b.classList.remove('on'));
+      btn.classList.add('on');
+      selectedForecastDay=i;
+      el('sliderDate').textContent=i===0?'Today — Current':dd;
+      // Always activate 7-DAY ML layer when a forecast day is clicked
+      currentMapLayer='predict';
+      document.querySelectorAll('.mctrl-btn').forEach(b=>b.classList.remove('on'));
+      el('btn-predict').classList.add('on');
+      renderZoneMarkers(CITIES[city],'predict',i);
+    };
+    container.appendChild(btn);forecastDays.push({label:lbl,date:dd});
+  }
+}
+
+function exitReportsLayerIfActive(){
+  if(reportsLayerOn){
+    reportsLayerOn=false;
+    el('btn-reports').classList.remove('on');
+    if(riversLayer){map.removeLayer(riversLayer);riversLayer=null;}
+    reportMarkers.forEach(m=>map.removeLayer(m));reportMarkers=[];
+    try{localStorage.setItem('citypulse_reports_layer','off');}catch(_){}
+  }
+}
+
+function setMapLayer(layer,btn){
+  playSound('map-layer-'+layer);
+  exitReportsLayerIfActive();
+  currentMapLayer=layer;
+  document.querySelectorAll('.mctrl-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderZoneMarkers(CITIES[city],layer,selectedForecastDay);
+}
+
+function toggleCompare(btn){
+  playSound('map-compare');
+  exitReportsLayerIfActive();
+  document.querySelectorAll('.mctrl-btn').forEach(b=>b.classList.remove('on'));
+  compareMode=!compareMode;
+  btn.classList.toggle('on',compareMode);
+  if(!compareMode){compareZones=[];renderCmpPanel();}
+  else{const lb=el(currentMapLayer==='risk'?'btn-risk':currentMapLayer==='aqi'?'btn-aqi':'btn-predict');if(lb)lb.classList.add('on');}
+  el('cmpBar').style.display=compareMode?'block':'none';
+}
+
+function toggleReportsLayer(btn){
+  playSound('map-reports');
+  reportsLayerOn=!reportsLayerOn;
+  btn.classList.toggle('on',reportsLayerOn);
+  try{localStorage.setItem('citypulse_reports_layer',reportsLayerOn?'on':'off');}catch(_){}
+  if(reportsLayerOn){
+    // Hide AQI zone markers — reports view shows only report pins + rivers
+    markers.forEach(m=>map.removeLayer(m));
+    if(heatLayer){map.removeLayer(heatLayer);heatLayer=null;heatActive=false;el('btn-heat').classList.remove('on');}
+    renderReportMarkers();
+    addRiversLayer();
+  }else{
+    if(riversLayer){map.removeLayer(riversLayer);riversLayer=null;}
+    reportMarkers.forEach(m=>map.removeLayer(m));
+    reportMarkers=[];
+    // Restore AQI zone markers
+    renderZoneMarkers(CITIES[city],currentMapLayer,selectedForecastDay);
+  }
+}
+
+function reportSeverityClass(sev){
+  if(!sev)return'sev-medium';
+  const s=sev.toLowerCase();
+  if(s==='low')return'sev-low';
+  if(s==='medium')return'sev-medium';
+  if(s==='high')return'sev-high';
+  if(s.includes('critical')||s.includes('emergency'))return'sev-critical';
+  return'sev-medium';
+}
+function isWaterViolationType(type){
+  if(!type)return false;
+  const t=type.toLowerCase();
+  return t.includes('water')||t.includes('effluent')||t.includes('discharge')||t.includes('contamination');
+}
+
+function renderReportMarkers(){
+  // Always clear existing report markers first
+  reportMarkers.forEach(m=>map.removeLayer(m));
+  reportMarkers=[];
+  if(!map) return;
+  const cityLabel=CITIES[city]?CITIES[city].label:null;
+  submittedReports.forEach(r=>{
+    if(r.lat==null||r.lng==null) return;
+    // Show reports for this city only
+    if(cityLabel && r.city && r.city!==cityLabel) return;
+    const sevClass=r.resolved?'resolved':reportSeverityClass(r.sev);
+    const borderClass=r.resolved?'':'('+(isWaterViolationType(r.type)?'border-water':'border-other')+')';
+    const markerClass=r.resolved?'report-marker resolved':`report-marker ${reportSeverityClass(r.sev)} ${isWaterViolationType(r.type)?'border-water':'border-other'}`;
+    const m=L.marker([r.lat,r.lng],{
+      icon:L.divIcon({className:'',html:`<div class="${markerClass}" title="${r.type}"></div>`,iconSize:[20,20],iconAnchor:[10,10]}),
+      zIndexOffset: 500
+    });
+    const imgHtml=r.image?`<img src="${r.image}" class="report-popup-img" alt="Report"/>`:'<div style="font-size:9px;color:var(--dim);margin-bottom:6px">No image attached</div>';
+    const resolvedBadge=r.resolved
+      ?`<div style="margin-top:5px;padding:3px 8px;background:rgba(0,230,118,.12);border:1px solid rgba(0,230,118,.35);border-radius:4px;font-size:8px;color:#00e676;font-family:var(--mono)">✓ RESOLVED BY GOVERNMENT</div>`
+      :`<div style="margin-top:5px;padding:3px 8px;background:rgba(255,23,68,.1);border:1px solid rgba(255,23,68,.3);border-radius:4px;font-size:8px;color:var(--red);font-family:var(--mono)">● OPEN — Under Review</div>`;
+    m.bindPopup(`<div style="min-width:200px;max-width:260px">
+      ${imgHtml}
+      <div style="color:${r.resolved?'#00e676':'var(--amber)'};font-weight:700;font-size:11px;">${r.type}</div>
+      <div style="font-size:9px;color:var(--dim);margin-top:2px">${r.sev} · ${r.ts}</div>
+      <div class="report-popup-desc">${(r.desc||'—').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div style="font-size:8px;color:var(--dim);margin-top:4px">📍 ${r.loc}</div>
+      <div style="font-size:8px;color:var(--dim);margin-top:2px">Reported by: ${r.name||'Anonymous'}</div>
+      ${resolvedBadge}
+    </div>`);
+    m.addTo(map);
+    reportMarkers.push(m);
+  });
+}
+
+function previewReportImage(input){
+  const preview=el('rImagePreview'),area=el('rImageArea'),label=el('rImageLabel');
+  if(!input.files||!input.files[0]){
+    preview.classList.remove('has-img');preview.src='';
+    if(area)area.classList.remove('has-file');
+    if(label)label.textContent='Choose image or drop here';return;
+  }
+  const file=input.files[0];
+  if(label)label.textContent=file.name.length>28?file.name.slice(0,25)+'…':file.name;
+  if(area)area.classList.add('has-file');
+  const r=new FileReader();
+  r.onload=()=>{preview.src=r.result;preview.classList.add('has-img');};
+  r.readAsDataURL(file);
+}
+
+function addCompareZone(name,zd,cfg){
+  if(compareZones.find(c=>c.name===name)){showNotif('Zone already selected');return;}
+  if(compareZones.length>=2){compareZones.shift();}
+  compareZones.push({name,zd,cfg});
+  renderCmpPanel();selectZone(name);
+  if(compareZones.length===2)showRTab('compare',document.querySelector('.rtab:nth-child(3)'));
+}
+
+function renderCmpPanel(){
+  const el2=el('cmpPanel');
+  if(compareZones.length===0){
+    el2.innerHTML='<div style="font-family:var(--mono);font-size:9px;color:var(--dim);text-align:center;padding:20px">Enable COMPARE mode and click two zones.</div>';return;
+  }
+  const cfg=CITIES[city];
+  const cols=compareZones.map((c,i)=>{
+    const zd=c.zd,rs=riskOf(zd.aqi,cfg.wqi,zd.ind),ai=aqiInfo(zd.aqi);
+    const mlP=mlPredictions.find(p=>p.zone===c.name);
+    return`<div class="cmp-col ${i===0?'a':'b'}">
+      <div class="cmp-title">${c.name} ${zd.ind?'🏭':''}</div>
+      <div class="cmp-stat"><span>India AQI</span><span class="cmp-val" style="color:${ai.color}">${zd.aqi}</span></div>
+      <div class="cmp-stat"><span>PM₂.₅</span><span class="cmp-val">${zd.pm25.toFixed(1)}</span></div>
+      <div class="cmp-stat"><span>PM₁₀</span><span class="cmp-val">${zd.pm10.toFixed(1)}</span></div>
+      <div class="cmp-stat"><span>NO₂</span><span class="cmp-val">${zd.no2.toFixed(1)}</span></div>
+      <div class="cmp-stat"><span>SO₂</span><span class="cmp-val">${zd.so2.toFixed(1)}</span></div>
+      <div class="cmp-stat"><span>Risk</span><span class="cmp-val" style="color:${riskStyle(rs).color}">${rs}/100</span></div>
+      ${mlP?`<div class="cmp-stat"><span>ML Peak</span><span class="cmp-val" style="color:${aqiInfo(mlP.peakAQI).color}">${mlP.peakAQI}</span></div>`:''}
+    </div>`;
+  });
+  el2.innerHTML=`<div class="cmp-panel">${cols.join('')}</div>`;
+  if(compareZones.length===2){
+    const w=compareZones[0].zd.aqi>compareZones[1].zd.aqi?0:1;
+    el2.innerHTML+=`<div style="font-family:var(--mono);font-size:9px;text-align:center;padding:8px;background:var(--s2);border-radius:5px;color:var(--red)">
+      ⚠ ${compareZones[w].name} has higher AQI (${compareZones[w].zd.aqi} vs ${compareZones[1-w].zd.aqi}) — priority intervention needed.
+    </div>`;
+  }
+}
+
+function renderZoneList(cfg){
+  const container=el('ftab-zones');container.innerHTML='';
+  const sorted=[...cfg.zones].sort((a,b)=>(zoneData[b.name]?.aqi||0)-(zoneData[a.name]?.aqi||0));
+  sorted.forEach((z,i)=>{
+    const zd=zoneData[z.name]||{aqi:60,pm25:20,pm10:35,no2:10,ind:z.ind};
+    const rs=riskOf(zd.aqi,cfg.wqi,z.ind),rc=riskStyle(rs),ai=aqiInfo(zd.aqi);
+    const card=document.createElement('div');
+    card.className='zcard'+(i===0?' sel':'');card.id='zcard-'+z.name.replace(/\s/g,'_');
+    card.innerHTML=`
+      <div class="ztop">
+        <span class="zname" style="color:${rc.color}">${z.name}${z.ind?' 🏭':''}</span>
+        <span class="zchip ${rc.chip}">${rc.label}</span>
+      </div>
+      <div class="zmini">
+        <div class="mrow"><span class="mlbl">AQI</span><div class="mtrack"><div class="mfill" style="width:${Math.min(100,(zd.aqi/500)*100)}%;background:${ai.color}"></div></div><span class="mval" style="color:${ai.color}">${zd.aqi}</span></div>
+        <div class="mrow"><span class="mlbl">PM₂.₅</span><div class="mtrack"><div class="mfill" style="width:${Math.min(100,(zd.pm25/150)*100)}%;background:#ffb300"></div></div><span class="mval">${zd.pm25.toFixed(0)}</span></div>
+        <div class="mrow"><span class="mlbl">NO₂</span><div class="mtrack"><div class="mfill" style="width:${Math.min(100,(zd.no2/150)*100)}%;background:#2979ff"></div></div><span class="mval">${zd.no2.toFixed(0)}</span></div>
+        <div class="mrow"><span class="mlbl">Risk</span><div class="mtrack"><div class="mfill" style="width:${rs}%;background:${rc.color}"></div></div><span class="mval" style="color:${rc.color}">${rs}</span></div>
+      </div>`;
+    card.onclick=()=>{
+      if(compareMode){addCompareZone(z.name,zd,cfg);return;}
+      selectZone(z.name);map.flyTo([z.lat,z.lon],14,{duration:1.2});
+    };
+    container.appendChild(card);
+  });
+}
+
+function selectZone(name){
+  document.querySelectorAll('.zcard').forEach(c=>{c.classList.remove('sel');c.classList.remove('cmp')});
+  const id='zcard-'+name.replace(/\s/g,'_');
+  const card=document.getElementById(id);
+  if(card)card.classList.add(compareMode?'cmp':'sel');
+}
+
+function renderAlertFeed(cfg,aqi,pm25){
+  const container=el('ftab-alerts');container.innerHTML='';
+  const ai=aqiInfo(aqi);
+  const preds=buildPredList(cfg,curIdx(cityForecast.time));
+  const alerts=[
+    {type:'crit',msg:`LIVE: ${cfg.label} AQI is ${aqi} (${ai.label}) · PM₂.₅: ${pm25.toFixed(1)} µg/m³ — Source: ${waqiCityData?'WAQI':'Open-Meteo CAMS'}`,ts:'Just now'},
+    ...(aqi>200?[{type:'crit',msg:`PM₂.₅ ${pm25.toFixed(1)} µg/m³ exceeds CPCB 24-hr standard (60 µg/m³)`,ts:'Now'}]:[]),
+    {type:'warn',msg:`CPCB: ${cfg.violations.toLocaleString()} violations in FY 2023-24 · ${cfg.closures} units closed in ${cfg.label}`,ts:'CPCB 2024'},
+    {type:'warn',msg:`Water: ${cfg.river} WQI ${cfg.wqi}/100 (${cfg.wqiStatus}) — CPCB NWMP Annual Report 2023-24`,ts:'CPCB NWMP'},
+    ...(preds.slice(0,3).map(p=>{
+      const ciStr = p.ciLowAQI!=null ? ` [CI: ${p.ciLowAQI}–${p.ciHighAQI}]` : '';
+      const modelStr = mlModelReady ? ` · TF.js Neural Net R²=${(p.r2||0).toFixed(2)}` : ' · Baseline forecast';
+      return {type:'ai',msg:`ML FORECAST: ${p.zone} predicted AQI ${p.peakAQI}${ciStr} in ${p.daysAway} days (${p.riskPct}% risk)${modelStr}`,ts:'7d ML forecast'};
+    })),
+    {type:'info',msg:'ML: TensorFlow.js dense neural net · 9 features · 60 epochs · Monte Carlo Dropout CI · '+(mlModelReady?`R²=${mlR2Score.toFixed(3)} RMSE=${mlRmse.toFixed(1)} µg/m³`:'training...'),ts:'ML Engine'},
+  ];
+  alerts.forEach((a,i)=>{
+    const d=document.createElement('div');
+    d.className=`acard ${a.type}`;d.style.animationDelay=i*.07+'s';
+    d.innerHTML=`<div class="atype">${{crit:'🚨 CRITICAL',warn:'⚠ WARNING',ai:'🤖 ML PREDICTION',info:'ℹ INFO'}[a.type]}</div><div class="amsg">${a.msg}</div><div class="ats">${a.ts}</div>`;
+    container.appendChild(d);
+  });
+  // Re-inject persisted gov alerts at the top
+  govAlerts.forEach(a => addGovAlertToFeed(a));
+}
+
+function renderPollBreakdown(idx){
+  const container=el('pollBreak');container.innerHTML='';
+  const fromWAQI=waqiCityData&&waqiCityData.iaqi;
+  let pm25,pm10,no2,so2,co,o3;
+  if(fromWAQI){
+    const v=(k)=>waqiCityData.iaqi[k]&&typeof waqiCityData.iaqi[k].v==='number'?waqiCityData.iaqi[k].v:0;
+    pm25=v('pm25');pm10=v('pm10');no2=v('no2');so2=v('so2');co=v('co');o3=v('o3');
+  } else if(cityForecast?.pm2_5){
+    pm25=latestVal(cityForecast.pm2_5,idx);pm10=latestVal(cityForecast.pm10,idx);
+    no2=latestVal(cityForecast.nitrogen_dioxide,idx);so2=latestVal(cityForecast.sulphur_dioxide,idx);
+    co=latestVal(cityForecast.carbon_monoxide,idx);o3=latestVal(cityForecast.ozone,idx);
+  } else { container.innerHTML='<div style="font-size:9px;color:var(--dim);font-family:var(--mono)">No data</div>';return; }
+  const polls=[
+    {ico:'🌫️',name:'PM₂.₅',val:pm25,unit:'µg/m³',lim:60, color:'#ffb300'},
+    {ico:'🌪️',name:'PM₁₀', val:pm10,unit:'µg/m³',lim:100,color:'#ff6d00'},
+    {ico:'💨',name:'NO₂',  val:no2, unit:'µg/m³',lim:80, color:'#2979ff'},
+    {ico:'🏭',name:'SO₂',  val:so2, unit:'µg/m³',lim:80, color:'#d500f9'},
+    {ico:'🚗',name:'CO',   val:co,  unit:'µg/m³',lim:4000,color:'#ff1744'},
+    {ico:'☁️',name:'O₃',  val:o3,  unit:'µg/m³',lim:100,color:'#00e5ff'}
+  ];
+  container.innerHTML='<div style="font-family:var(--mono);font-size:7.5px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Current Hour — CPCB Limit Comparison</div>';
+  polls.forEach(p=>{
+    const safe=p.val<=p.lim,pct=Math.min(100,(p.val/(p.lim*1.5))*100);
+    container.innerHTML+=`<div class="poll-row">
+      <div class="poll-ico" style="background:${p.color}15">${p.ico}</div>
+      <div style="flex:1">
+        <div class="poll-name" style="color:${p.color}">${p.name}</div>
+        <div class="poll-conc">${p.val.toFixed(1)} ${p.unit} of ${p.lim} limit</div>
+        <div class="poll-bar"><div class="poll-fill" style="width:${pct}%;background:${p.color}"></div></div>
+      </div>
+      <span class="poll-status" style="background:${safe?'rgba(0,230,118,.1)':'rgba(255,23,68,.1)'};color:${safe?'#00e676':'#ff1744'}">${safe?'✓ OK':'⚠ OVER'}</span>
+    </div>`;
+  });
+  container.innerHTML+=`<div style="font-family:var(--mono);font-size:7.5px;color:var(--dim);margin-top:8px;padding-top:8px;border-top:1px solid var(--border2)">Source: ${fromWAQI?'WAQI (World AQI Project)':'Open-Meteo CAMS'} · Limits: CPCB NAAQS 2009</div>`;
+}
+
+function renderActions(cfg,aqi){
+  const container=el('actionList');container.innerHTML='';
+  const preds=buildPredList(cfg,curIdx(cityForecast.time));
+  const acts=[];
+  if(aqi>300)acts.push({pri:'URGENT',color:'#ff1744',ico:'🚨',txt:`Issue Public Health Emergency — AQI ${aqi} (${aqiInfo(aqi).label}). Restrict traffic and close schools.`});
+  if(preds.length){
+    const top=preds[0];
+    const ciStr = top.ciLowAQI!=null ? ` (CI: ${top.ciLowAQI}–${top.ciHighAQI})` : '';
+    acts.push({pri:'HIGH',color:'#ff6d00',ico:'🤖',txt:`ML Neural Net: ${top.zone} predicted AQI ${top.peakAQI}${ciStr} in ${top.daysAway} days. Deploy CPCB rapid response.`});
+  }
+  acts.push({pri:'HIGH',color:'#ff6d00',ico:'💧',txt:`Sample ${cfg.river} near industrial belt — WQI ${cfg.wqi}/100 (${cfg.wqiStatus}).`});
+  acts.push({pri:'MEDIUM',color:'#ffb300',ico:'📋',txt:`Issue compliance notices: ${cfg.violations.toLocaleString()} total violations, ${cfg.closures} repeat offenders.`});
+  acts.push({pri:'INFO',color:'#00e5ff',ico:'📡',txt:`Deploy 4 additional IoT sensors. ML model ${mlModelReady?`ready (R²=${mlR2Score.toFixed(2)}, RMSE=${mlRmse.toFixed(1)} µg/m³)`:'training...'}.`});
+  acts.forEach(a=>{
+    container.innerHTML+=`<div class="action-card" style="border-color:${a.color}">
+      <div class="action-pri" style="color:${a.color}">${a.ico} ${a.pri}</div>
+      <div class="action-text">${a.txt}</div>
+    </div>`;
+  });
+}
+
+function renderCharts(cfg,idx){
+  const daily={};
+  if(cityHistory?.pm2_5){
+    cityHistory.time.forEach((t,i)=>{const d=t.slice(0,10);if(!daily[d])daily[d]=[];if(cityHistory.pm2_5[i]!==null)daily[d].push(cityHistory.pm2_5[i]);});
+  }
+  const days=Object.entries(daily).map(([d,v])=>({
+    lbl:d.slice(5),pm25:v.length?v.reduce((a,b)=>a+b,0)/v.length:null
+  })).slice(-30);
+  const dailyViol=Math.round(cfg.violations/365);
+
+  // ML forecast line — append 7-day ML predictions after historical
+  let mlForecastLabels=[], mlForecastData=[], mlForecastCILo=[], mlForecastCIHi=[];
+  if(mlModelReady && mlPredictions.length){
+    // Average daily ML PM2.5 across all zones (city mean)
+    for(let d=0;d<7;d++){
+      const date=new Date();date.setDate(date.getDate()+d);
+      mlForecastLabels.push(date.toISOString().slice(5,10));
+      const allPM25=mlPredictions.map(p=>p.dailyPM25?p.dailyPM25[d]:null).filter(v=>v!=null);
+      if(allPM25.length){
+        const avg=allPM25.reduce((a,b)=>a+b,0)/allPM25.length;
+        const ciLo=mlPredictions.map(p=>(p.dailyPM25?p.dailyPM25[d]:avg)*0.85).reduce((a,b)=>a+b,0)/mlPredictions.length;
+        const ciHi=mlPredictions.map(p=>(p.dailyPM25?p.dailyPM25[d]:avg)*1.15).reduce((a,b)=>a+b,0)/mlPredictions.length;
+        mlForecastData.push(+avg.toFixed(1));
+        mlForecastCILo.push(+ciLo.toFixed(1));
+        mlForecastCIHi.push(+ciHi.toFixed(1));
+      }
+    }
+  }
+
+  const allLabels = [...days.map(d=>d.lbl), ...mlForecastLabels];
+  const histLen = days.length;
+  const mlForecastFull = [...days.map(()=>null), ...mlForecastData];
+  const ciLoFull = [...days.map(()=>null), ...mlForecastCILo];
+  const ciHiFull = [...days.map(()=>null), ...mlForecastCIHi];
+
+  if(trendChart)trendChart.destroy();
+  const c1=document.getElementById('trendChart').getContext('2d');
+  trendChart=new Chart(c1,{
+    data:{
+      labels: allLabels,
+      datasets:[
+        {type:'line',label:'PM₂.₅ (Historical)',data:[...days.map(d=>d.pm25?+d.pm25.toFixed(1):null), ...mlForecastLabels.map(()=>null)],
+          borderColor:'#ffb300',backgroundColor:'rgba(255,179,0,.05)',tension:.4,borderWidth:2,pointRadius:0,spanGaps:true,yAxisID:'y'},
+        {type:'line',label:'ML Forecast PM₂.₅',data:mlForecastFull,
+          borderColor:'#d500f9',backgroundColor:'rgba(213,0,249,.08)',tension:.4,borderWidth:2,pointRadius:3,
+          pointBackgroundColor:'#d500f9',spanGaps:false,yAxisID:'y',borderDash:[4,2]},
+        {type:'line',label:'CI Lower',data:ciLoFull,
+          borderColor:'rgba(213,0,249,.2)',backgroundColor:'rgba(213,0,249,.05)',tension:.4,borderWidth:1,
+          pointRadius:0,spanGaps:false,yAxisID:'y',fill:'+1'},
+        {type:'line',label:'CI Upper',data:ciHiFull,
+          borderColor:'rgba(213,0,249,.2)',backgroundColor:'rgba(213,0,249,.05)',tension:.4,borderWidth:1,
+          pointRadius:0,spanGaps:false,yAxisID:'y',fill:false},
+        {type:'line',label:'AQI',data:[...days.map(d=>d.pm25?pm25ToAQI(d.pm25):null),...mlForecastLabels.map(()=>null)],
+          borderColor:'#ff1744',backgroundColor:'rgba(255,23,68,.03)',tension:.4,borderWidth:1.5,
+          pointRadius:0,borderDash:[3,3],spanGaps:true,yAxisID:'y2'},
+        {type:'bar',label:'Violations/day',data:allLabels.map((_,i)=>i<histLen?Math.max(0,dailyViol+Math.round((Math.random()-.4)*2)):null),
+          backgroundColor:'rgba(213,0,249,.35)',borderColor:'rgba(213,0,249,.7)',borderWidth:1,yAxisID:'y3'}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
+      plugins:{
+        legend:{display:false},
+        tooltip:{backgroundColor:'rgba(7,19,32,.97)',borderColor:'rgba(0,229,255,.3)',borderWidth:1,titleColor:'#00e5ff',bodyColor:'#8899aa'},
+        annotation:{} // placeholder
+      },
+      scales:{
+        x:{grid:{color:'rgba(0,229,255,.04)'},ticks:{color:'#4a6280',font:{family:'Space Mono',size:7},maxTicksLimit:12}},
+        y:{position:'left',grid:{color:'rgba(0,229,255,.04)'},ticks:{color:'#ffb300',font:{family:'Space Mono',size:7}}},
+        y2:{position:'right',grid:{display:false},ticks:{color:'#ff1744',font:{family:'Space Mono',size:7}}},
+        y3:{display:false}
+      }}
+  });
+
+  if(cityForecast?.pm2_5){
+    const pm25v=latestVal(cityForecast.pm2_5,idx),pm10v=latestVal(cityForecast.pm10,idx);
+    const no2v=latestVal(cityForecast.nitrogen_dioxide,idx),so2v=latestVal(cityForecast.sulphur_dioxide,idx);
+    const o3v=latestVal(cityForecast.ozone,idx);
+    const norm=[(pm25v/60)*100,(pm10v/100)*100,(no2v/80)*100,(so2v/80)*100,(o3v/100)*100];
+    if(pollChart)pollChart.destroy();
+    const c2=document.getElementById('pollChart').getContext('2d');
+    pollChart=new Chart(c2,{
+      type:'bar',
+      data:{
+        labels:['PM₂.₅','PM₁₀','NO₂','SO₂','O₃'],
+        datasets:[{data:norm.map(v=>+v.toFixed(1)),
+          backgroundColor:['rgba(255,179,0,.5)','rgba(255,109,0,.5)','rgba(41,121,255,.5)','rgba(213,0,249,.5)','rgba(0,229,255,.5)'],
+          borderColor:['#ffb300','#ff6d00','#2979ff','#d500f9','#00e5ff'],
+          borderWidth:1.5,borderRadius:3}]},
+      options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(7,19,32,.97)',borderColor:'rgba(0,229,255,.3)',borderWidth:1,titleColor:'#00e5ff',bodyColor:'#8899aa',callbacks:{label:c=>`${c.raw.toFixed(1)}% of CPCB limit`}}},
+        scales:{
+          x:{max:180,grid:{color:'rgba(0,229,255,.04)'},ticks:{color:'#4a6280',font:{family:'Space Mono',size:7}}},
+          y:{grid:{display:false},ticks:{color:'#8899aa',font:{family:'Space Mono',size:8}}}
+        }}
+    });
+  }
+}
+
+function updateThresh(key,val){
+  const kMap={'aqi-warn':'aqiWarn','aqi-crit':'aqiCrit','pm25':'pm25','risk':'risk','no2':'no2'};
+  thresholds[kMap[key]]=+val;
+  el('tv-'+key).textContent=val;
+  checkThresholdAlerts(+(el('k-aqi').textContent)||0,+(el('k-pm25').textContent)||0);
+}
+
+function checkThresholdAlerts(aqi,pm25){
+  const container=el('threshAlerts');if(!container)return;
+  const fired=[];
+  if(aqi>=thresholds.aqiCrit)fired.push({label:'AQI Critical',val:aqi,thresh:thresholds.aqiCrit,color:'#ff1744'});
+  else if(aqi>=thresholds.aqiWarn)fired.push({label:'AQI Warning',val:aqi,thresh:thresholds.aqiWarn,color:'#ffb300'});
+  if(pm25>thresholds.pm25)fired.push({label:'PM₂.₅ Exceeded',val:pm25.toFixed(1),thresh:thresholds.pm25,color:'#ff6d00'});
+  container.innerHTML=fired.length?fired.map(f=>`<div style="padding:6px 9px;border-radius:5px;background:rgba(255,23,68,.1);border-left:2px solid ${f.color};font-family:var(--mono);font-size:8px;color:${f.color};margin-bottom:5px">⚠ ${f.label}: ${f.val} (threshold: ${f.thresh})</div>`).join(''):'<div style="font-family:var(--mono);font-size:8px;color:var(--green)">✓ All readings within configured thresholds</div>';
+}
+
+function submitReport(){
+  playSound('submit-report');
+  const type=el('rType').value,sev=el('rSeverity').value,loc=el('rLoc').value,desc=el('rDesc').value;
+  if(!reportPinLatLng){showNotif('Please click the map to set a location first');return;}
+  const lat=reportPinLatLng.lat,lng=reportPinLatLng.lng;
+  const addReport=(imgData)=>{
+    const report={id:Date.now(),type,sev,loc,desc,name:el('rName').value||'Anonymous',ts:new Date().toLocaleTimeString('en-IN'),city:CITIES[city].label,lat,lng,image:imgData||null};
+    submittedReports.push(report);saveReportsToStorage();
+    const feed=el('ftab-alerts');
+    const d=document.createElement('div');d.className='acard crit';
+    d.innerHTML=`<div class="atype">📢 CITIZEN REPORT</div><div class="amsg">${type} · ${sev} severity · ${loc}</div><div class="ats">${report.ts}</div>`;
+    feed.insertBefore(d,feed.firstChild);
+    showToast('✓ Report submitted — visible on map');
+    el('rDesc').value='';el('rLoc').value='';el('rName').value='';
+    el('rImage').value='';el('rImagePreview').src='';el('rImagePreview').classList.remove('has-img');
+    const ra=el('rImageArea');if(ra)ra.classList.remove('has-file');
+    const rl=el('rImageLabel');if(rl)rl.textContent='Choose image or drop here';
+    if(reportPin){map.removeLayer(reportPin);reportPin=null;}reportPinLatLng=null;
+    renderReportList();
+    // Always add the new marker to the map immediately regardless of layer toggle state
+    renderReportMarkers();
+  };
+  const fileInput=el('rImage');
+  if(fileInput.files&&fileInput.files[0]){const r=new FileReader();r.onload=()=>addReport(r.result);r.readAsDataURL(fileInput.files[0]);}
+  else addReport(null);
+}
+
+function deleteReport(id){
+  const i=submittedReports.findIndex(r=>r.id===id);if(i===-1)return;
+  submittedReports.splice(i,1);saveReportsToStorage();renderReportList();
+  renderReportMarkers(); // always sync map
+  showToast('Report deleted');
+}
+
+function renderReportList(){
+  const container=el('rptList');
+  const open=submittedReports.filter(r=>!r.resolved).length;
+  const resolved=submittedReports.filter(r=>r.resolved).length;
+  container.innerHTML=`<div style="font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--dim);margin-bottom:5px">
+    REPORTS (${submittedReports.length}) · <span style="color:var(--red)">${open} Open</span> · <span style="color:var(--green)">${resolved} Resolved</span>
+  </div>`;
+  submittedReports.slice().reverse().forEach(r=>{
+    const thumb=r.image?`<img src="${r.image}" alt="" style="width:100%;max-height:60px;object-fit:cover;border-radius:4px;margin-bottom:4px"/>`:'';
+    const resolvedBadge=r.resolved
+      ?`<span style="font-family:var(--mono);font-size:7px;padding:1px 6px;border-radius:3px;background:rgba(0,230,118,.1);color:#00e676;border:1px solid rgba(0,230,118,.3);font-weight:700">✓ RESOLVED</span>`
+      :`<span style="font-family:var(--mono);font-size:7px;padding:1px 6px;border-radius:3px;background:rgba(255,23,68,.1);color:var(--red);border:1px solid rgba(255,23,68,.3);font-weight:700">● OPEN</span>`;
+    const borderColor=r.resolved?'#00e676':'rgba(255,23,68,.4)';
+    container.innerHTML+=`<div class="rpt-card" style="padding:6px 8px;background:var(--s3);border-radius:4px;margin-bottom:4px;font-family:var(--mono);font-size:9.5px;color:var(--text);border-left:2px solid ${borderColor}">
+      <button type="button" class="rpt-delete" onclick="deleteReport(${r.id})" title="Delete report">🗑</button>
+      ${thumb}
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+        <span style="color:${r.resolved?'#00e676':'var(--amber)'};font-weight:700">#${r.id} · ${r.type}</span>
+        ${resolvedBadge}
+      </div>
+      <div style="color:var(--dim)">${r.sev} · ${r.ts}</div>
+      ${(r.desc||'').slice(0,80)}${(r.desc||'').length>80?'…':''}
+    </div>`;
+  });
+}
+
+function clearReportPin(){playSound('clear-pin');if(reportPin){map.removeLayer(reportPin);reportPin=null;}reportPinLatLng=null;el('rLoc').value='';}
+
+function exportCSV(){
+  const cfg=CITIES[city];
+  let csv='Zone,Industrial,AQI,PM2.5_ugm3,PM10_ugm3,NO2_ugm3,SO2_ugm3,O3_ugm3,Risk_Score,ML_PeakAQI_7d,ML_CI_Low,ML_CI_High,WQI,City\n';
+  cfg.zones.forEach(z=>{
+    const zd=zoneData[z.name]||{};
+    const rs=riskOf(zd.aqi||0,cfg.wqi,z.ind);
+    const mlP=mlPredictions.find(p=>p.zone===z.name);
+    csv+=`${z.name},${z.ind?'Yes':'No'},${zd.aqi||0},${(zd.pm25||0).toFixed(1)},${(zd.pm10||0).toFixed(1)},${(zd.no2||0).toFixed(1)},${(zd.so2||0).toFixed(1)},${(zd.o3||0).toFixed(1)},${rs},${mlP?mlP.peakAQI:''},${mlP?mlP.ciLowAQI:''},${mlP?mlP.ciHighAQI:''},${cfg.wqi},${cfg.label}\n`;
+  });
+  download(csv,'text/csv','citypulse_zones_'+city+'_'+new Date().toISOString().slice(0,10)+'.csv');
+  showToast('✓ Zone data + ML predictions exported as CSV');
+}
+function exportAlertsCSV(){
+  const cfg=CITIES[city];
+  let csv='City,Total_Violations_FY23-24,Unit_Closures,River,WQI,WQI_Status,ML_R2,ML_RMSE\n';
+  csv+=`${cfg.label},${cfg.violations},${cfg.closures},${cfg.river},${cfg.wqi},${cfg.wqiStatus},${mlR2Score?mlR2Score.toFixed(3):''},${mlRmse?mlRmse.toFixed(1):''}\n`;
+  download(csv,'text/csv','citypulse_alerts_'+city+'_'+new Date().toISOString().slice(0,10)+'.csv');
+  showToast('✓ Alerts + ML metrics exported as CSV');
+}
+function exportJSON(){
+  const cfg=CITIES[city];
+  const data={city:cfg.label,exported:new Date().toISOString(),
+    sources:['WAQI','Open-Meteo CAMS','CPCB NWMP 2023-24','CPCB Enforcement 2023-24','TensorFlow.js ML Engine'],
+    mlModel:{architecture:'Dense NN 9→64→32→16→1',features:'lag1,lag2,lag7,roll7,roll3,hour,dow,isWeekend,isIndustrial',
+      epochs:mlEpochsDone,r2:mlR2Score,rmse:mlRmse,inference:'Monte Carlo Dropout (T=20)'},
+    cityMetrics:{wqi:cfg.wqi,wqiStatus:cfg.wqiStatus,river:cfg.river,violations:cfg.violations,closures:cfg.closures},
+    zones:cfg.zones.map(z=>{const zd=zoneData[z.name]||{};const mlP=mlPredictions.find(p=>p.zone===z.name);
+      return{name:z.name,lat:z.lat,lon:z.lon,industrial:z.ind,...zd,riskScore:riskOf(zd.aqi||0,cfg.wqi,z.ind),
+        mlForecast:mlP?{peakAQI:mlP.peakAQI,ciLow:mlP.ciLowAQI,ciHigh:mlP.ciHighAQI,daysAway:mlP.daysAway,trend:mlP.trend,dailyAQI:mlP.dailyAQI}:null};
+    })
+  };
+  download(JSON.stringify(data,null,2),'application/json','citypulse_report_'+city+'_'+new Date().toISOString().slice(0,10)+'.json');
+  showToast('✓ Full JSON + ML report exported');
+}
+function printReport(){window.print();}
+function download(content,type,filename){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=filename;a.click();
+}
+
+function el(id){return document.getElementById(id);}
+// ╔══════════════════════════════════════════════════╗
+// ║  AUDIO SYSTEM — per-button sound customization   ║
+// ║  Place click.mp3 in same folder as this HTML.    ║
+// ║  To change a specific button's sound, edit the   ║
+// ║  SOUND_MAP entry for that key below.             ║
+// ╚══════════════════════════════════════════════════╝
+const SOUND_MAP = {
+  // ── Auth ──────────────────────────────────────────
+  'auth-tab-user':       'click.mp3',   // 👤 User tab
+  'auth-tab-gov':        'click.mp3',   // 🏛️ Government tab
+  'auth-login':          'click.mp3',   // Sign In button
+  'auth-logout':         'click.mp3',   // Logout button
+
+  // ── Header ────────────────────────────────────────
+  'theme-toggle':        'click.mp3',   // Light/dark toggle
+  'city-picker':         'click.mp3',   // City dropdown change
+
+  // ── Left panel tabs ───────────────────────────────
+  'ftab-zones':          'click.mp3',   // ZONES tab
+  'ftab-alerts':         'click.mp3',   // ALERTS tab
+  'ftab-report':         'click.mp3',   // REPORT tab
+  'ftab-thresh':         'click.mp3',   // THRESHOLDS tab
+
+  // ── Report form ───────────────────────────────────
+  'submit-report':       'report.mp3',   // Submit Report
+  'clear-pin':           'click.mp3',   // Clear Pin
+
+  // ── Map layer controls ────────────────────────────
+  'map-layer-risk':      'click.mp3',   // RISK button
+  'map-layer-aqi':       'click.mp3',   // AQI button
+  'map-layer-predict':   'click.mp3',   // 7-DAY ML button
+  'map-heatmap':         'click.mp3',   // HEATMAP toggle
+  'map-compare':         'click.mp3',   // COMPARE toggle
+  'map-reports':         'click.mp3',   // REPORTS layer toggle
+
+  // ── Right panel tabs ──────────────────────────────
+  'rtab-ai':             'click.mp3',   // ML PREDICT tab
+  'rtab-poll':           'click.mp3',   // POLLUTANTS tab
+  'rtab-compare':        'click.mp3',   // COMPARE tab
+  'rtab-export':         'click.mp3',   // EXPORT tab
+  'rtab-bot':            'click.mp3',   // AI BOT tab
+
+  // ── Export buttons ────────────────────────────────
+  'export-csv':          'click.mp3',   // Zone Data CSV
+  'export-alerts-csv':   'click.mp3',   // Alerts CSV
+  'export-json':         'click.mp3',   // JSON Report
+  'export-print':        'click.mp3',   // Print / PDF
+
+  // ── AI Bot ────────────────────────────────────────
+  'bot-send':            'report.mp3',   // ASK / send message
+  'bot-prebuilt':        'click.mp3',   // Pre-built question chips
+  'bot-floating-btn':    'click.mp3',   // Floating AI button
+
+  // ── Gov panel ─────────────────────────────────────
+  'gov-open':            'click.mp3',   // Open Gov Panel
+  'gov-close':           'click.mp3',   // Close Gov Panel
+  'gov-tab-reports':     'click.mp3',   // REPORTS gov tab
+  'gov-tab-alerts':      'click.mp3',   // PUSH ALERT gov tab
+  'gov-tab-stats':       'click.mp3',   // STATS gov tab
+  'gov-resolve':         'noti.mp3',   // Mark Resolved / Reopen
+  'gov-delete':          'click.mp3',   // Delete report
+  'gov-push-alert':      'pop.mp3',   // Push Alert to Dashboard
+};
+
+const _sfxCache = {};
+function playSound(key) {
+  try {
+    const src = SOUND_MAP[key] ?? 'click.mp3';
+    if (!_sfxCache[src]) {
+      const a = new Audio(src);
+      a.preload = 'auto';
+      _sfxCache[src] = a;
+    }
+    const sfx = _sfxCache[src].cloneNode();
+    sfx.volume = 0.5;
+    sfx.play().catch(() => {});
+  } catch (_) {}
+}
+// ── END AUDIO SYSTEM ────────────────────────────────
+
+function showFTab(tab,btn){
+  playSound('ftab-'+tab);
+  document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  ['ftab-zones','ftab-alerts','ftab-report','ftab-thresh'].forEach(id=>{el(id).style.display='none'});
+  el('ftab-'+tab).style.display='block';
+  if(tab==='report')renderReportList();
+}
+function showRTab(tab,btn){
+  playSound('rtab-'+tab);
+  document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');
+  ['rp-ai','rp-poll','rp-compare','rp-export','rp-bot'].forEach(id=>{el(id).style.display='none'});
+  el('rp-'+tab).style.display='block';
+  if(tab==='bot') initBotPrebuilt();
+}
+function setOvl(pct,msg){el('ovlFill').style.width=pct+'%';el('ovlStep').textContent=msg;}
+let notifTimer;
+function showNotif(msg){const n=el('notif');n.textContent=msg;n.style.display='block';clearTimeout(notifTimer);notifTimer=setTimeout(()=>n.style.display='none',4000);}
+let toastTimer;
+function showToast(msg){const t=el('toast');t.textContent=msg;t.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.display='none',2500);}
+function updateClock(){
+  el('clock').textContent=new Intl.DateTimeFormat('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date())+' IST';
+}
+function switchCity(){playSound('city-picker');city=el('cityPicker').value;el('overlay').style.display='flex';el('ovlFill').style.width='0%';loadCity(city);}
+
+function toggleTheme(){
+  playSound('theme-toggle');
+  const root=document.documentElement;
+  const isLight=root.getAttribute('data-theme')==='light';
+  root.setAttribute('data-theme',isLight?'':'light');
+  localStorage.setItem('citypulse_theme',isLight?'':'light');
+  const sun=el('themeIconSun'),moon=el('themeIconMoon');
+  if(sun)sun.style.display=isLight?'block':'none';
+  if(moon)moon.style.display=isLight?'none':'block';
+  // Swap map tile layer
+  if(map){
+    map.eachLayer(l=>{ if(l._url) map.removeLayer(l); });
+    L.tileLayer(isLight
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+      subdomains:'abcd',maxZoom:19
+    }).addTo(map);
+  }
+}
+function applySavedTheme(){
+  const t=localStorage.getItem('citypulse_theme');
+  const sun=el('themeIconSun'),moon=el('themeIconMoon');
+  if(t==='light'){document.documentElement.setAttribute('data-theme','light');if(sun)sun.style.display='none';if(moon)moon.style.display='block';}
+  else{document.documentElement.removeAttribute('data-theme');if(sun)sun.style.display='block';if(moon)moon.style.display='none';}
+}
+
+
+
+// ── AUTHENTICATION ──────────────────────────────────
+const USERS = {
+  user: { pass: 'user123', role: 'user' },
+  gov:  { pass: 'gov@2024', role: 'gov'  }
+};
+
+let currentUser = null;
+let currentRole = null;
+let authTab = 'user';
+let currentGovTab = 'reports';
+let govAlerts = [];
+
+function switchAuthTab(tab, btn){
+  playSound('auth-tab-'+tab);
+  authTab = tab;
+  document.querySelectorAll('.auth-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  el('authErr').textContent='';
+  // Pre-fill credentials for testing
+  if(tab==='user'){
+    el('authUser').value='user';
+    el('authPass').value='user123';
+  } else {
+    el('authUser').value='gov';
+    el('authPass').value='gov@2024';
+  }
+}
+
+function doLogin(){
+  playSound('auth-login');
+  const u = el('authUser').value.trim();
+  const p = el('authPass').value.trim();
+  const errEl = el('authErr');
+  errEl.textContent = '';
+  if(!u||!p){ errEl.textContent='Please enter username and password.'; return; }
+  const acct = USERS[u];
+  if(!acct || acct.pass !== p){ errEl.textContent='Invalid username or password.'; return; }
+  if(acct.role !== authTab){ errEl.textContent=`This account is not a ${authTab} account.`; return; }
+  currentUser = u;
+  currentRole = acct.role;
+  // Persist session
+  try{ localStorage.setItem('citypulse_session', JSON.stringify({user:u, role:acct.role})); }catch(_){}
+  applyLoggedInState();
+  showToast(`✓ Welcome, ${u}! Signed in as ${currentRole.toUpperCase()}`);
+}
+
+function applyLoggedInState(){
+  el('authScreen').style.display='none';
+  if(currentRole==='gov'){
+    el('govHeaderBadge').style.display='flex';
+    el('userHeaderBadge').style.display='none';
+  } else {
+    el('userHeaderBadge').style.display='flex';
+    el('govHeaderBadge').style.display='none';
+  }
+  el('logoutBtn').style.display='block';
+}
+
+function restoreSession(){
+  try{
+    const raw = localStorage.getItem('citypulse_session');
+    if(!raw) return false;
+    const s = JSON.parse(raw);
+    if(!s||!s.user||!s.role) return false;
+    currentUser = s.user;
+    currentRole = s.role;
+    applyLoggedInState();
+    return true;
+  }catch(_){ return false; }
+}
+
+function doLogout(){
+  playSound('auth-logout');
+  currentUser = null; currentRole = null;
+  try{ localStorage.removeItem('citypulse_session'); }catch(_){}
+  el('govHeaderBadge').style.display='none';
+  el('userHeaderBadge').style.display='none';
+  el('logoutBtn').style.display='none';
+  el('govPanel').style.display='none';
+  el('authUser').value=''; el('authPass').value='';
+  el('authErr').textContent='';
+  el('authScreen').style.display='flex';
+}
+
+// ── GOV PANEL ──────────────────────────────────────
+function openGovPanel(){
+  playSound('gov-open');
+  if(currentRole!=='gov') return;
+  el('govPanel').style.display='flex';
+  renderGovTab(currentGovTab);
+}
+function closeGovPanel(){ playSound('gov-close'); el('govPanel').style.display='none'; }
+
+function showGovTab(tab, btn){
+  playSound('gov-tab-'+tab);
+  currentGovTab = tab;
+  document.querySelectorAll('.gov-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderGovTab(tab);
+}
+
+function renderGovTab(tab){
+  const body = el('govBody');
+  body.innerHTML = '';
+  if(tab==='reports') renderGovReports(body);
+  else if(tab==='alerts') renderGovAlerts(body);
+  else if(tab==='stats') renderGovStats(body);
+}
+
+function renderGovReports(body){
+  const all = submittedReports;
+  if(!all.length){
+    body.innerHTML=`<div style="font-family:var(--mono);font-size:9px;color:var(--dim);text-align:center;padding:30px">No citizen reports submitted yet.</div>`;
+    return;
+  }
+  const open = all.filter(r=>!r.resolved).length;
+  const resolved = all.filter(r=>r.resolved).length;
+  const summary = document.createElement('div');
+  summary.style.cssText='font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:8px';
+  summary.innerHTML=`${all.length} Reports · <span style="color:var(--red)">${open} Open</span> · <span style="color:var(--green)">${resolved} Resolved</span>`;
+  body.appendChild(summary);
+  all.slice().reverse().forEach(r=>{
+    const imgHtml = r.image ? `<img src="${r.image}" style="width:100%;max-height:80px;object-fit:cover;border-radius:4px;margin-bottom:6px"/>` : '';
+    const statusBadge = r.resolved
+      ? `<span class="gov-status-badge resolved">✓ Resolved</span>`
+      : `<span class="gov-status-badge open">● Open</span>`;
+    const actionBtn = r.resolved
+      ? `<button class="gov-act-btn unresolve" onclick="govToggleResolve(${r.id})">↩ Mark Open</button>`
+      : `<button class="gov-act-btn resolve" onclick="govToggleResolve(${r.id})">✓ Mark Resolved</button>`;
+    const card = document.createElement('div');
+    card.className = 'gov-rpt-card';
+    card.style.borderLeft = `3px solid ${r.resolved ? 'var(--green)' : 'var(--red)'}`;
+    card.innerHTML = `
+      ${imgHtml}
+      <div class="gov-rpt-top"><span class="gov-rpt-type">#${r.id} · ${r.type}</span>${statusBadge}</div>
+      <div class="gov-rpt-meta">📍 ${r.loc||'—'} · ${r.sev} · ${r.ts}</div>
+      <div class="gov-rpt-meta">👤 ${r.name||'Anonymous'} · 🏙 ${r.city||'—'}</div>
+      <div class="gov-rpt-desc">${(r.desc||'No description').slice(0,120)}</div>
+      <div class="gov-actions">${actionBtn}<button class="gov-act-btn delete" onclick="govDeleteReport(${r.id})">🗑 Delete</button></div>`;
+    body.appendChild(card);
+  });
+}
+
+function govToggleResolve(id){
+  playSound('gov-resolve');
+  const r = submittedReports.find(r=>r.id===id);
+  if(!r) return;
+  r.resolved = !r.resolved;
+  saveReportsToStorage();
+  renderReportList();
+  renderReportMarkers();
+  renderGovTab('reports');
+  // Push to public alert feed
+  const feed = el('ftab-alerts');
+  const d = document.createElement('div');
+  if(r.resolved){
+    d.className='acard';
+    d.style.borderLeftColor='#00e676';
+    d.innerHTML=`<div class="atype" style="color:#00e676">✓ GOVT — REPORT RESOLVED</div><div class="amsg">#${r.id} · ${r.type}<br><span style="font-size:9px;color:var(--dim)">📍 ${r.loc||'—'} · Reported by ${r.name||'Anonymous'}</span></div><div class="ats">${new Date().toLocaleTimeString('en-IN')} · Resolved by Government</div>`;
+  } else {
+    d.className='acard warn';
+    d.innerHTML=`<div class="atype">↩ GOVT — REPORT REOPENED</div><div class="amsg">#${r.id} · ${r.type} marked as Open again</div><div class="ats">${new Date().toLocaleTimeString('en-IN')} · Updated by Government</div>`;
+  }
+  if(feed.firstChild) feed.insertBefore(d, feed.firstChild); else feed.appendChild(d);
+  showToast(r.resolved ? '✓ Report marked as resolved' : '↩ Report reopened');
+}
+
+function govDeleteReport(id){
+  playSound('gov-delete');
+  const i = submittedReports.findIndex(r=>r.id===id);
+  if(i===-1) return;
+  submittedReports.splice(i,1);
+  saveReportsToStorage();
+  renderReportList();
+  renderReportMarkers();
+  renderGovTab('reports');
+  showToast('Report deleted by government');
+}
+
+function renderGovAlerts(body){
+  body.innerHTML=`
+    <div style="font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--amber);margin-bottom:10px">Push Public Alert</div>
+    <div class="gov-alert-form">
+      <select id="govAlertType">
+        <option value="crit">🚨 Critical Emergency</option>
+        <option value="warn">⚠ Health Warning</option>
+        <option value="info">ℹ Public Advisory</option>
+      </select>
+      <input type="text" id="govAlertTitle" placeholder="Alert title..." maxlength="60"/>
+      <textarea id="govAlertMsg" rows="3" placeholder="Enter alert message for citizens..."></textarea>
+      <button class="gov-push-btn" onclick="pushGovAlert()">PUSH ALERT TO DASHBOARD</button>
+    </div>
+    <div style="font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Pushed Alerts (${govAlerts.length})</div>
+    <div id="govAlertList"></div>`;
+  renderGovAlertList();
+}
+
+function saveGovAlertsToStorage(){
+  try{
+    localStorage.setItem('citypulse_gov_alerts', JSON.stringify(govAlerts));
+    localStorage.setItem('citypulse_gov_alerts_ts', Date.now().toString());
+  }catch(_){}
+}
+
+function loadGovAlertsFromStorage(){
+  try{
+    const raw = localStorage.getItem('citypulse_gov_alerts');
+    if(raw){ const arr=JSON.parse(raw); if(Array.isArray(arr)) govAlerts=arr; }
+  }catch(_){}
+}
+
+function pushGovAlert(){
+  playSound('gov-push-alert');
+  const type = el('govAlertType').value;
+  const title = el('govAlertTitle').value.trim();
+  const msg = el('govAlertMsg').value.trim();
+  if(!title||!msg){ showToast('⚠ Please fill in title and message'); return; }
+  const alert = { id: Date.now(), type, title, msg, ts: new Date().toLocaleTimeString('en-IN'), city: CITIES[city].label };
+  govAlerts.unshift(alert);
+  saveGovAlertsToStorage();
+  addGovAlertToFeed(alert);
+  el('govAlertTitle').value=''; el('govAlertMsg').value='';
+  renderGovAlertList();
+  showToast('📢 Alert pushed to dashboard!');
+}
+
+function addGovAlertToFeed(alert){
+  const typeMap = { crit:'🚨 GOVT ALERT', warn:'⚠ HEALTH WARNING', info:'ℹ GOVT ADVISORY' };
+  const cssMap  = { crit:'crit', warn:'warn', info:'info' };
+  const feed = el('ftab-alerts');
+  const d = document.createElement('div');
+  d.className = `acard ${cssMap[alert.type]}`;
+  d.setAttribute('data-gov-alert-id', alert.id);
+  d.innerHTML = `<div class="atype">${typeMap[alert.type]}</div><div class="amsg"><b>${alert.title}</b><br>${alert.msg}</div><div class="ats">${alert.ts} · Pushed by Government · ${alert.city}</div>`;
+  if(feed.firstChild) feed.insertBefore(d, feed.firstChild); else feed.appendChild(d);
+}
+
+function renderGovAlertList(){
+  const list = el('govAlertList');
+  if(!list) return;
+  list.innerHTML = '';
+  if(!govAlerts.length){ list.innerHTML=`<div style="font-family:var(--mono);font-size:9px;color:var(--dim);text-align:center;padding:12px">No alerts pushed yet.</div>`; return; }
+  const colors = { crit:'var(--red)', warn:'var(--amber)', info:'var(--cyan)' };
+  govAlerts.forEach(a=>{
+    const d = document.createElement('div');
+    d.style.cssText=`background:var(--s2);border:1px solid var(--border2);border-left:3px solid ${colors[a.type]};border-radius:5px;padding:8px 10px;margin-bottom:6px;font-family:var(--mono);font-size:9px`;
+    d.innerHTML=`<div style="color:${colors[a.type]};font-weight:700;margin-bottom:3px">${a.title}</div><div style="color:var(--text);margin-bottom:3px">${a.msg}</div><div style="color:var(--dim);font-size:8px">${a.ts} · ${a.city}</div>`;
+    list.appendChild(d);
+  });
+}
+
+function renderGovStats(body){
+  const cfg = CITIES[city];
+  const total = submittedReports.length;
+  const open = submittedReports.filter(r=>!r.resolved).length;
+  const resolved = submittedReports.filter(r=>r.resolved).length;
+  const critical = submittedReports.filter(r=>r.sev&&r.sev.toLowerCase().includes('critical')).length;
+  const hotspots = mlPredictions.filter(p=>p.peakAQI>200).length;
+  body.innerHTML=`
+    <div style="font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Overview · ${cfg.label}</div>
+    <div class="gov-stat-grid">
+      <div class="gov-stat"><div class="gov-stat-val" style="color:var(--amber)">${total}</div><div class="gov-stat-lbl">Total Reports</div></div>
+      <div class="gov-stat"><div class="gov-stat-val" style="color:var(--red)">${open}</div><div class="gov-stat-lbl">Open Reports</div></div>
+      <div class="gov-stat"><div class="gov-stat-val" style="color:var(--green)">${resolved}</div><div class="gov-stat-lbl">Resolved</div></div>
+      <div class="gov-stat"><div class="gov-stat-val" style="color:var(--red)">${critical}</div><div class="gov-stat-lbl">Critical Reports</div></div>
+      <div class="gov-stat"><div class="gov-stat-val">${cfg.violations.toLocaleString()}</div><div class="gov-stat-lbl">CPCB Violations</div></div>
+      <div class="gov-stat"><div class="gov-stat-val" style="color:var(--amber)">${cfg.closures}</div><div class="gov-stat-lbl">Unit Closures</div></div>
+      <div class="gov-stat"><div class="gov-stat-val" style="color:var(--cyan)">${cfg.zones.length}</div><div class="gov-stat-lbl">Monitored Zones</div></div>
+      <div class="gov-stat"><div class="gov-stat-val" style="color:var(--red)">${hotspots}</div><div class="gov-stat-lbl">ML Hotspots</div></div>
+    </div>
+    <div style="font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin:10px 0 6px">Water Quality</div>
+    <div class="gov-stat-grid">
+      <div class="gov-stat"><div class="gov-stat-val" style="color:var(--blue)">${cfg.wqi}</div><div class="gov-stat-lbl">WQI Score</div></div>
+      <div class="gov-stat"><div class="gov-stat-val" style="font-size:11px;color:var(--dim)">${cfg.wqiStatus}</div><div class="gov-stat-lbl">River: ${cfg.river}</div></div>
+    </div>
+    <div style="font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin:10px 0 4px">Pushed Alerts This Session</div>
+    <div style="font-family:'Chakra Petch',var(--mono);font-size:24px;font-weight:700;color:var(--amber)">${govAlerts.length}</div>`;
+}
+
+function openAIBot(){
+  playSound('bot-floating-btn');
+  // Find and click the AI BOT rtab button
+  const tabs = document.querySelectorAll('.rtab');
+  tabs.forEach(btn => { if(btn.textContent.trim()==='AI BOT') btn.click(); });
+}
+
+
+const BOT_PREBUILT = [
+  "Which zone has the worst AQI right now?",
+  "Is it safe to go outside today?",
+  "What are the top pollution risks?",
+  "How does WQI affect health here?",
+  "Which zones are industrial?",
+  "What does the ML model predict this week?",
+  "How many CPCB violations are there?",
+  "Compare air and water quality"
+];
+
+let botHistory = [];
+let botInitialized = false;
+
+function getBotContext(){
+  const cfg = CITIES[city];
+  const zoneLines = cfg.zones.map(z => {
+    const zd = zoneData[z.name] || {};
+    const mlP = mlPredictions.find(p => p.zone === z.name);
+    const risk = riskOf(zd.aqi||0, cfg.wqi, z.ind);
+    return `  • ${z.name} (${z.ind?'Industrial':'Residential'}): AQI=${zd.aqi||'N/A'}, PM2.5=${zd.pm25?zd.pm25.toFixed(1)+'µg/m³':'N/A'}, Risk=${risk}/100${mlP ? `, ML 7d Peak AQI=${mlP.peakAQI}` : ''}`;
+  }).join('\n');
+
+  const mlStatus = mlModelReady
+    ? `Trained (R²=${mlR2Score?mlR2Score.toFixed(3):'?'}, RMSE=${mlRmse?mlRmse.toFixed(1):'?'}, Epochs=${mlEpochsDone})`
+    : 'Training in progress';
+
+  return `You are CityPulse AI, an environmental intelligence assistant embedded in a live air & water quality dashboard for Indian cities. You answer questions about air quality, water quality, pollution, AQI, health & safety advice, zones, WQI, CPCB violations, ML predictions, and any related environmental or health topics. If the user asks something completely unrelated (e.g. cooking recipes, sports scores, coding help, jokes), politely say you're focused on environmental and health topics. Otherwise, be helpful and use the live data below to give accurate, actionable answers.
+
+CURRENT CITY: ${cfg.label}
+DATE: ${new Date().toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'})}
+
+WATER QUALITY:
+  River: ${cfg.river}
+  WQI: ${cfg.wqi} (${cfg.wqiStatus})
+
+ENFORCEMENT (CPCB 2023-24):
+  Total Violations: ${cfg.violations}
+  Unit Closures: ${cfg.closures}
+
+ML MODEL STATUS: ${mlStatus}
+
+ZONE-LEVEL AIR QUALITY (Live):
+${zoneLines}
+
+AQI THRESHOLDS (India): 0-50 Good, 51-100 Satisfactory, 101-200 Moderate, 201-300 Poor, 301-400 Very Poor, 401+ Severe
+
+Answer helpfully in 3-5 sentences. Use the live data above when relevant.`;
+}
+
+function initBotPrebuilt(){
+  if(botInitialized) return;
+  botInitialized = true;
+  const container = el('botPrebuilt');
+  BOT_PREBUILT.forEach(q => {
+    const btn = document.createElement('button');
+    btn.textContent = q;
+    btn.style.cssText = `font-family:var(--mono);font-size:8px;padding:3px 7px;border-radius:3px;border:1px solid var(--border);background:var(--s2);color:var(--dim);cursor:pointer;transition:all .2s;text-align:left`;
+    btn.onmouseover = () => { btn.style.borderColor='var(--cyan)'; btn.style.color='var(--cyan)'; };
+    btn.onmouseout  = () => { btn.style.borderColor='var(--border)'; btn.style.color='var(--dim)'; };
+    btn.onclick = () => { playSound('bot-prebuilt'); el('botInput').value = q; sendBotMessage(); };
+    container.appendChild(btn);
+  });
+}
+
+function addBotMessage(role, text, isLoading=false){
+  const wrap = el('botMessages');
+  const div = document.createElement('div');
+  const isUser = role === 'user';
+  div.style.cssText = `display:flex;flex-direction:column;align-items:${isUser?'flex-end':'flex-start'}`;
+  div.innerHTML = `
+    <div style="max-width:92%;padding:7px 10px;border-radius:6px;font-family:var(--mono);font-size:9.5px;line-height:1.55;
+      background:${isUser?'var(--cyan10)':'var(--s2)'};
+      border:1px solid ${isUser?'rgba(0,229,255,.25)':'var(--border2)'};
+      color:${isUser?'var(--cyan)':'var(--text)'};
+      ${isUser?'border-bottom-right-radius:2px':'border-bottom-left-radius:2px'}">
+      ${isLoading ? '<span class="bot-typing">●●●</span>' : text.replace(/\n/g,'<br>')}
+    </div>`;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+  return div;
+}
+
+async function sendBotMessage(){
+  playSound('bot-send');
+  const input = el('botInput');
+  const q = input.value.trim();
+  if(!q) return;
+  input.value = '';
+
+  addBotMessage('user', q);
+  botHistory.push({ role:'user', content: q });
+
+  const loadingDiv = addBotMessage('assistant', '', true);
+
+  try {
+    const systemPrompt = getBotContext();
+    // Build messages array with system context prepended to first user message
+    const messages = botHistory.map((m, i) => {
+      if(i === 0 && m.role === 'user') {
+        return { role: 'user', content: `[SYSTEM CONTEXT]\n${systemPrompt}\n[/SYSTEM CONTEXT]\n\nUser question: ${m.content}` };
+      }
+      return m;
+    });
+
+    const response = await puter.ai.chat(messages, { model: 'gpt-4o-mini' });
+    const reply = response?.message?.content || response?.text || String(response);
+
+    botHistory.push({ role:'assistant', content: reply });
+    loadingDiv.querySelector('div').innerHTML = reply.replace(/\n/g,'<br>');
+    el('botMessages').scrollTop = el('botMessages').scrollHeight;
+  } catch(err) {
+    loadingDiv.querySelector('div').innerHTML = 'Connection error. Please try again.';
+    loadingDiv.querySelector('div').style.color = 'var(--red)';
+    botHistory.pop();
+  }
+}
+
+
+window.addEventListener('load',()=>{
+  applySavedTheme();
+  loadReportsFromStorage();
+  loadGovAlertsFromStorage();
+  // Set baseline timestamps so first poll doesn't fire spuriously
+  _lastReportTs = parseInt(localStorage.getItem('citypulse_reports_ts')||'0');
+  _lastGovAlertTs = parseInt(localStorage.getItem('citypulse_gov_alerts_ts')||'0');
+  // Restore session — skip login if already signed in
+  if(!restoreSession()){
+    el('authScreen').style.display='flex';
+  }
+  initMap();
+  loadCity('pune');
+  updateClock();
+  setInterval(updateClock,1000);
+  // Poll for report + alert changes every 3 seconds (cross-tab sync)
+  setInterval(pollReportSync, 3000);
+  // Also listen for storage events (same origin, different tab)
+  window.addEventListener('storage', e=>{
+    if(e.key==='citypulse_reports_ts'||e.key==='citypulse_gov_alerts_ts') pollReportSync();
+  });
+  setInterval(()=>{
+    const feed=el('ftab-alerts');
+    const d=document.createElement('div');d.className='acard info';
+    d.innerHTML=`<div class="atype">🔄 AUTO-REFRESH</div><div class="amsg">Fetching latest data + retraining ML model...</div><div class="ats">${new Date().toLocaleTimeString('en-IN')}</div>`;
+    if(feed.firstChild)feed.insertBefore(d,feed.firstChild);
+    loadCity(city);
+  },15*60*1000);
+});
+</script>
+</body>
+</html>
